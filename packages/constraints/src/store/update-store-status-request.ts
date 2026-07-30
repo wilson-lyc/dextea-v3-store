@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { storeStatusCode } from '../enums/enum.js'
+import { storeStatusCode } from '../enums/index.js'
 
 export const updateStoreStatusRequestSchema = z.object({
   status: z
