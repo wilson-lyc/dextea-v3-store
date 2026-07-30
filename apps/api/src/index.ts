@@ -20,8 +20,8 @@ const app = Fastify({
 await app.register(helmet)
 await app.register(cors)
 app.addHook('onRequest', createStoreIdInterceptor(jwtService))
-await app.register(loginRoutes, { prefix: '/api/auth' })
-await app.register(storeRoutes, { prefix: '/api/stores' })
+await app.register(loginRoutes, { prefix: '/api/v1/auth' })
+await app.register(storeRoutes, { prefix: '/api/v1/store' })
 
 registerErrorHandler(app)
 
