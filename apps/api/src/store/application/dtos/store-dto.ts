@@ -1,3 +1,4 @@
+import type { StoreStatusCode } from '@dextea/constraints'
 import type { Store } from '@/store/domain/aggregates/store.js'
 
 export interface StoreView {
@@ -7,7 +8,7 @@ export interface StoreView {
   city: string
   district: string
   address: string
-  status: number
+  status: StoreStatusCode
   businessHours: string
   phone: string
   longitude: number

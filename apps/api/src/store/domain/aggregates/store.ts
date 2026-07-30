@@ -1,3 +1,5 @@
+import { StoreStatus, type StoreStatusCode } from '@dextea/constraints'
+
 export class Store {
   constructor(
     public readonly id: number,
@@ -8,7 +10,7 @@ export class Store {
     public readonly city: string,
     public readonly district: string,
     public readonly address: string,
-    public readonly status: number,
+    public readonly status: StoreStatusCode,
     public readonly businessHours: string,
     public readonly phone: string,
     public readonly longitude: number,
@@ -19,6 +21,6 @@ export class Store {
   ) {}
 
   isAvailable(): boolean {
-    return this.status !== 3
+    return this.status !== StoreStatus.DEFUNCT.code
   }
 }
