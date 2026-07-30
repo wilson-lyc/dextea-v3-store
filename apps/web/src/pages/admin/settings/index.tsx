@@ -153,7 +153,6 @@ export default function StoreSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>门店信息</CardTitle>
-          <CardDescription>查看门店基本信息</CardDescription>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -243,7 +242,6 @@ export default function StoreSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>重置密码</CardTitle>
-          <CardDescription>修改门店登录密码</CardDescription>
         </CardHeader>
         <form onSubmit={handleResetPassword}>
           <CardContent className="flex flex-col gap-4 pb-(--card-spacing)">
