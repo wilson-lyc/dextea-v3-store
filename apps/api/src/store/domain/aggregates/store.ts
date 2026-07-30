@@ -1,4 +1,4 @@
-import { StoreStatus, type StoreStatusCode } from '@dextea/constraints'
+import { storeStatusCode, type StoreStatusCode } from '@dextea/constraints'
 
 export class Store {
   constructor(
@@ -21,6 +21,6 @@ export class Store {
   ) {}
 
   isAvailable(): boolean {
-    return this.status !== StoreStatus.DEFUNCT.code
+    return this.status !== storeStatusCode.DEFUNCT
   }
 }

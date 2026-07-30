@@ -1,99 +1,99 @@
-import { Enum } from './enum.js'
+import { codeMap } from './enum.js'
 
-const employeeStatusDef = [
-  [0, 'DISABLED', '禁用'],
-  [1, 'ACTIVE', '激活'],
+export const EmployeeStatus = [
+  { code: 0, key: 'DISABLED', label: '禁用' },
+  { code: 1, key: 'ACTIVE', label: '激活' },
 ] as const
-export const EmployeeStatus = new Enum('EmployeeStatus', employeeStatusDef)
-export type EmployeeStatusCode = (typeof employeeStatusDef)[number][0]
+export type EmployeeStatusCode = (typeof EmployeeStatus)[number]['code']
+export const employeeStatusCode = codeMap(EmployeeStatus)
 
-const storeStatusDef = [
-  [0, 'CLOSED', '休息中'],
-  [1, 'OPEN', '营业中'],
-  [2, 'PENDING', '筹备中'],
-  [3, 'DEFUNCT', '已注销'],
+export const StoreStatus = [
+  { code: 0, key: 'CLOSED', label: '休息中' },
+  { code: 1, key: 'OPEN', label: '营业中' },
+  { code: 2, key: 'PENDING', label: '筹备中' },
+  { code: 3, key: 'DEFUNCT', label: '已注销' },
 ] as const
-export const StoreStatus = new Enum('StoreStatus', storeStatusDef)
-export type StoreStatusCode = (typeof storeStatusDef)[number][0]
+export type StoreStatusCode = (typeof StoreStatus)[number]['code']
+export const storeStatusCode = codeMap(StoreStatus)
 
-const productGlobalStatusDef = [
-  [0, 'GLOBAL_DISABLED', '全局下架'],
-  [1, 'GLOBAL_ACTIVE', '全局上架'],
+export const ProductGlobalStatus = [
+  { code: 0, key: 'GLOBAL_DISABLED', label: '全局下架' },
+  { code: 1, key: 'GLOBAL_ACTIVE', label: '全局上架' },
 ] as const
-export const ProductGlobalStatus = new Enum('ProductGlobalStatus', productGlobalStatusDef)
-export type ProductGlobalStatusCode = (typeof productGlobalStatusDef)[number][0]
+export type ProductGlobalStatusCode = (typeof ProductGlobalStatus)[number]['code']
+export const productGlobalStatusCode = codeMap(ProductGlobalStatus)
 
-const productStoreStatusDef = [
-  [0, 'STORE_DISABLED', '门店售罄'],
-  [1, 'STORE_ACTIVE', '门店可售'],
+export const ProductStoreStatus = [
+  { code: 0, key: 'STORE_DISABLED', label: '门店售罄' },
+  { code: 1, key: 'STORE_ACTIVE', label: '门店可售' },
 ] as const
-export const ProductStoreStatus = new Enum('ProductStoreStatus', productStoreStatusDef)
-export type ProductStoreStatusCode = (typeof productStoreStatusDef)[number][0]
+export type ProductStoreStatusCode = (typeof ProductStoreStatus)[number]['code']
+export const productStoreStatusCode = codeMap(ProductStoreStatus)
 
-const customizationItemStatusDef = [
-  [0, 'DISABLED', '禁用'],
-  [1, 'ACTIVE', '激活'],
+export const CustomizationItemStatus = [
+  { code: 0, key: 'DISABLED', label: '禁用' },
+  { code: 1, key: 'ACTIVE', label: '激活' },
 ] as const
-export const CustomizationItemStatus = new Enum('CustomizationItemStatus', customizationItemStatusDef)
-export type CustomizationItemStatusCode = (typeof customizationItemStatusDef)[number][0]
+export type CustomizationItemStatusCode = (typeof CustomizationItemStatus)[number]['code']
+export const customizationItemStatusCode = codeMap(CustomizationItemStatus)
 
-const customizationOptionGlobalStatusDef = [
-  [0, 'GLOBAL_DISABLED', '全局禁用'],
-  [1, 'GLOBAL_ACTIVE', '全局激活'],
+export const CustomizationOptionGlobalStatus = [
+  { code: 0, key: 'GLOBAL_DISABLED', label: '全局禁用' },
+  { code: 1, key: 'GLOBAL_ACTIVE', label: '全局激活' },
 ] as const
-export const CustomizationOptionGlobalStatus = new Enum('CustomizationOptionGlobalStatus', customizationOptionGlobalStatusDef)
-export type CustomizationOptionGlobalStatusCode = (typeof customizationOptionGlobalStatusDef)[number][0]
+export type CustomizationOptionGlobalStatusCode = (typeof CustomizationOptionGlobalStatus)[number]['code']
+export const customizationOptionGlobalStatusCode = codeMap(CustomizationOptionGlobalStatus)
 
-const customizationOptionStoreStatusDef = [
-  [0, 'STORE_DISABLED', '门店禁用'],
-  [1, 'STORE_ACTIVE', '门店激活'],
+export const CustomizationOptionStoreStatus = [
+  { code: 0, key: 'STORE_DISABLED', label: '门店禁用' },
+  { code: 1, key: 'STORE_ACTIVE', label: '门店激活' },
 ] as const
-export const CustomizationOptionStoreStatus = new Enum('CustomizationOptionStoreStatus', customizationOptionStoreStatusDef)
-export type CustomizationOptionStoreStatusCode = (typeof customizationOptionStoreStatusDef)[number][0]
+export type CustomizationOptionStoreStatusCode = (typeof CustomizationOptionStoreStatus)[number]['code']
+export const customizationOptionStoreStatusCode = codeMap(CustomizationOptionStoreStatus)
 
-const ingredientStatusDef = [
-  [0, 'ACTIVE', '禁用'],
-  [1, 'DISABLED', '激活'],
+export const IngredientStatus = [
+  { code: 0, key: 'ACTIVE', label: '禁用' },
+  { code: 1, key: 'DISABLED', label: '激活' },
 ] as const
-export const IngredientStatus = new Enum('IngredientStatus', ingredientStatusDef)
-export type IngredientStatusCode = (typeof ingredientStatusDef)[number][0]
+export type IngredientStatusCode = (typeof IngredientStatus)[number]['code']
+export const ingredientStatusCode = codeMap(IngredientStatus)
 
-const customerStatusDef = [
-  [0, 'ACTIVE', '禁用'],
-  [1, 'DISABLED', '激活'],
+export const CustomerStatus = [
+  { code: 0, key: 'ACTIVE', label: '禁用' },
+  { code: 1, key: 'DISABLED', label: '激活' },
 ] as const
-export const CustomerStatus = new Enum('CustomerStatus', customerStatusDef)
-export type CustomerStatusCode = (typeof customerStatusDef)[number][0]
+export type CustomerStatusCode = (typeof CustomerStatus)[number]['code']
+export const customerStatusCode = codeMap(CustomerStatus)
 
-const orderPaymentStatusDef = [
-  [0, 'PENDING', '支付中'],
-  [1, 'PAID', '已支付'],
-  [2, 'REFUNDING', '退款中'],
-  [3, 'REFUNDED', '已退款'],
+export const OrderPaymentStatus = [
+  { code: 0, key: 'PENDING', label: '支付中' },
+  { code: 1, key: 'PAID', label: '已支付' },
+  { code: 2, key: 'REFUNDING', label: '退款中' },
+  { code: 3, key: 'REFUNDED', label: '已退款' },
 ] as const
-export const OrderPaymentStatus = new Enum('OrderPaymentStatus', orderPaymentStatusDef)
-export type OrderPaymentStatusCode = (typeof orderPaymentStatusDef)[number][0]
+export type OrderPaymentStatusCode = (typeof OrderPaymentStatus)[number]['code']
+export const orderPaymentStatusCode = codeMap(OrderPaymentStatus)
 
-const orderPaymentMethodDef = [
-  [0, 'ALIPAY', '支付宝'],
-  [1, 'WEIXIN', '微信'],
+export const OrderPaymentMethod = [
+  { code: 0, key: 'ALIPAY', label: '支付宝' },
+  { code: 1, key: 'WEIXIN', label: '微信' },
 ] as const
-export const OrderPaymentMethod = new Enum('OrderPaymentMethod', orderPaymentMethodDef)
-export type OrderPaymentMethodCode = (typeof orderPaymentMethodDef)[number][0]
+export type OrderPaymentMethodCode = (typeof OrderPaymentMethod)[number]['code']
+export const orderPaymentMethodCode = codeMap(OrderPaymentMethod)
 
-const orderMakingStatusDef = [
-  [0, 'PENDING', '待制作'],
-  [1, 'PREPARING', '制作中'],
-  [2, 'READY', '制作完成'],
-  [3, 'COLLECTED', '已取餐'],
+export const OrderMakingStatus = [
+  { code: 0, key: 'PENDING', label: '待制作' },
+  { code: 1, key: 'PREPARING', label: '制作中' },
+  { code: 2, key: 'READY', label: '制作完成' },
+  { code: 3, key: 'COLLECTED', label: '已取餐' },
 ] as const
-export const OrderMakingStatus = new Enum('OrderMakingStatus', orderMakingStatusDef)
-export type OrderMakingStatusCode = (typeof orderMakingStatusDef)[number][0]
+export type OrderMakingStatusCode = (typeof OrderMakingStatus)[number]['code']
+export const orderMakingStatusCode = codeMap(OrderMakingStatus)
 
-const orderSourceDef = [
-  [0, 'OFFLINE', '线下点餐'],
-  [1, 'ALIPAY', '支付宝'],
-  [2, 'WEIXIN', '微信'],
+export const OrderSource = [
+  { code: 0, key: 'OFFLINE', label: '线下点餐' },
+  { code: 1, key: 'ALIPAY', label: '支付宝' },
+  { code: 2, key: 'WEIXIN', label: '微信' },
 ] as const
-export const OrderSource = new Enum('OrderSource', orderSourceDef)
-export type OrderSourceCode = (typeof orderSourceDef)[number][0]
+export type OrderSourceCode = (typeof OrderSource)[number]['code']
+export const orderSourceCode = codeMap(OrderSource)
