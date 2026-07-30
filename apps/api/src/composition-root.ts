@@ -4,8 +4,12 @@ import { UpdateStoreStatusUseCase } from '@/store/application/use-cases/update-s
 import { ResetPasswordUseCase } from '@/store/application/use-cases/reset-password-use-case.js'
 import { storeRepository } from '@/store/infrastructure/repositories/store-repository.js'
 import { jwtService } from '@/store/infrastructure/jwt/jwt-service.js'
+import { redisDistributedLock } from '@/shared/infrastructure/redis/redis-distributed-lock-adapter.js'
 
 export const loginUseCase = new LoginUseCase(storeRepository, jwtService)
 export const getStoreUseCase = new GetStoreUseCase(storeRepository)
-export const updateStoreStatusUseCase = new UpdateStoreStatusUseCase(storeRepository)
+export const updateStoreStatusUseCase = new UpdateStoreStatusUseCase(
+  storeRepository,
+  redisDistributedLock,
+)
 export const resetPasswordUseCase = new ResetPasswordUseCase(storeRepository)
