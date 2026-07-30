@@ -10,6 +10,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@dextea/constraints':
+        specifier: workspace:*
+        version: link:../../packages/constraints
       '@fastify/cors':
         specifier: ^10.0.0
         version: 10.0.0
@@ -65,6 +68,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@dextea/constraints':
+        specifier: workspace:*
+        version: link:../../packages/constraints
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -141,6 +147,16 @@ importers:
       vite:
         specifier: ^8
         version: 8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0)
+
+  packages/constraints:
+    dependencies:
+      zod:
+        specifier: ^3.23.0
+        version: 3.23.0
+    devDependencies:
+      typescript:
+        specifier: ^5.5.0
+        version: 5.6.2
 
 packages:
 
