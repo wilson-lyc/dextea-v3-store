@@ -7,3 +7,7 @@ export async function verifyPassword(plaintextPassword: string, storedHash: stri
     return false
   }
 }
+
+export async function hashPassword(plaintextPassword: string): Promise<string> {
+  return argon2.hash(plaintextPassword)
+}

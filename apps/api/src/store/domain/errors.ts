@@ -5,4 +5,7 @@ export const StoreErrorCode = {
   INVALID_TOKEN: new BizErrorCode(401, '无效的令牌，请重新登录'),
   INVALID_CREDENTIALS: new BizErrorCode(401, '账号或密码错误'),
   STORE_DISABLED: new BizErrorCode(403, '门店已停用，无法登录'),
+  INVALID_STORE_STATUS: new BizErrorCode(400, '门店状态值无效'),
+  OLD_PASSWORD_INCORRECT: new BizErrorCode(400, '原密码不正确'),
+  SAME_AS_OLD_PASSWORD: new BizErrorCode(400, '新密码不能与原密码相同'),
 } as const

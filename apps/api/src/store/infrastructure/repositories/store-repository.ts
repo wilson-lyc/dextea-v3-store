@@ -15,6 +15,17 @@ export class StoreRepository implements StoreRepositoryPort {
     return row ? this.toAggregate(row) : null
   }
 
+  async updateStatus(id: number, status: number): Promise<void> {
+    await db.update(stores).set({ status }).where(eq(stores.id, id))
+  }
+
+  async updatePassword(id: number, passwordHash: string): Promise<void> {
+    await db
+      .update(stores)
+      .set({ password: passwordHash })
+      .where(eq(stores.id, id))
+  }
+
   private toAggregate(row: typeof stores.$inferSelect): Store {
     return new Store(
       row.id,
@@ -28,8 +39,8 @@ export class StoreRepository implements StoreRepositoryPort {
       row.status,
       row.businessHours,
       row.phone,
-      row.longitude,
-      row.latitude,
+      Number(row.longitude),
+      Number(row.latitude),
       row.email,
       row.createdAt,
       row.updatedAt,
