@@ -11,3 +11,4 @@ build/
 coverage/
 .codebuddy
 .workbuddy
+apps/api/drizzle/

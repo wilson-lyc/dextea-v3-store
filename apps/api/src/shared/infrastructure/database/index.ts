@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/mysql2'
 import mysql from 'mysql2/promise'
-import { config } from '../../config.js'
+import { config } from '@/shared/config.js'
 
 const { host, port, database, user, password } = config.database
 
