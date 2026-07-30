@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authApi } from "@/lib/api/auth"
 import { ApiError } from "@/lib/api/request"
+import { logger } from "@/lib/logger"
 import { setToken } from "@/lib/session"
 
 export default function LoginPage() {
@@ -29,8 +30,10 @@ export default function LoginPage() {
     try {
       const result = await authApi.login({ account, password })
       setToken(result.token)
+      logger.info("登录成功", `storeId=${result.storeId}`)
       navigate("/", { replace: true })
     } catch (err) {
+      logger.warn("登录失败", err)
       setError(err instanceof ApiError ? err.message : "登录失败，请稍后重试")
     } finally {
       setLoading(false)

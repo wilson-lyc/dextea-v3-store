@@ -1,7 +1,112 @@
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Monitor, Settings, Store } from "lucide-react"
+
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { storeApi } from "@/lib/api/store"
+import { ApiError } from "@/lib/api/request"
+import { clearToken } from "@/lib/session"
+import { logger } from "@/lib/logger"
+import { toast } from "@/lib/toast"
+
+interface Section {
+  key: string
+  title: string
+  description: string
+  icon: typeof Settings
+  path: string
+}
+
+const sections: Section[] = [
+  {
+    key: "admin",
+    title: "后台设置",
+    description: "门店信息、商品与员工等基础配置管理",
+    icon: Settings,
+    path: "/admin",
+  },
+  {
+    key: "counter",
+    title: "前台服务",
+    description: "点单、收银与订单处理等日常经营操作",
+    icon: Store,
+    path: "/counter",
+  },
+  {
+    key: "screen",
+    title: "服务大屏",
+    description: "叫号取餐与订单状态的大屏实时展示",
+    icon: Monitor,
+    path: "/screen",
+  },
+]
+
 export default function HomePage() {
+  const [storeName, setStoreName] = useState<string | null>(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+    storeApi
+      .getStore()
+      .then((store) => {
+        if (cancelled) return
+        logger.info("获取门店信息成功", store.name)
+        setStoreName(store.name)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        logger.error("获取门店信息失败", err)
+        toast.error(err instanceof ApiError ? err.message : "获取门店信息失败")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function handleLogout() {
+    clearToken()
+    logger.info("已退出登录")
+    navigate("/login", { replace: true })
+  }
+
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <h1 className="text-2xl font-semibold tracking-tight">Hello World</h1>
+    <div className="flex min-h-svh flex-col p-6 md:p-10">
+      <header className="flex items-start justify-between gap-4">
+        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+          你好，{storeName ?? "..."}
+        </h1>
+        <Button variant="outline" size="sm" onClick={handleLogout}>
+          退出登录
+        </Button>
+      </header>
+
+      <main className="mt-10 grid flex-1 content-start gap-6 md:grid-cols-3">
+        {sections.map(({ key, title, description, icon: Icon, path }) => (
+          <Card
+            key={key}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(path)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                navigate(path)
+              }
+            }}
+            className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Icon className="size-8" />
+              </div>
+              <div className="text-xl font-semibold">{title}</div>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </main>
     </div>
   )
 }

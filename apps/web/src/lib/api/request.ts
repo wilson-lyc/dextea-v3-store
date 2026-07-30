@@ -1,4 +1,5 @@
-import { getToken } from "@/lib/session"
+import { logger } from "@/lib/logger"
+import { clearToken, getToken } from "@/lib/session"
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000"
@@ -9,13 +10,14 @@ type RequestOptions = Omit<RequestInit, "body" | "headers"> & {
 }
 
 export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string,
-    public readonly code?: number,
-  ) {
+  readonly status: number
+  readonly code?: number
+
+  constructor(status: number, message: string, code?: number) {
     super(message)
     this.name = "ApiError"
+    this.status = status
+    this.code = code
   }
 }
 
@@ -38,14 +40,32 @@ async function request<T>(method: string, path: string, options: RequestOptions 
     finalHeaders["Authorization"] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: finalHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
-    ...rest,
-  })
+  logger.debug(`[请求] ${method} ${path}`, body ?? "")
+
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: finalHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      ...rest,
+    })
+  } catch (error) {
+    logger.error(`[网络异常] ${method} ${path}`, error)
+    throw new ApiError(0, "网络异常，请检查网络连接")
+  }
+
+  if (response.status === 401) {
+    logger.warn(`[未授权] ${method} ${path}，清除 Token 并跳转登录页`)
+    clearToken()
+    if (window.location.pathname !== "/login") {
+      window.location.replace("/login")
+    }
+    throw new ApiError(401, "登录已失效，请重新登录")
+  }
 
   if (response.status === 204) {
+    logger.debug(`[响应] ${method} ${path} 204`)
     return undefined as T
   }
 
@@ -53,9 +73,11 @@ async function request<T>(method: string, path: string, options: RequestOptions 
 
   if (!response.ok) {
     const message = envelope?.message ?? "请求失败，请稍后重试"
+    logger.error(`[请求失败] ${method} ${path} ${response.status}`, message)
     throw new ApiError(response.status, message, envelope?.code)
   }
 
+  logger.debug(`[响应] ${method} ${path} ${response.status}`, envelope?.data)
   return envelope ? envelope.data : (undefined as T)
 }
 
