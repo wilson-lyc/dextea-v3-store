@@ -1,22 +1,32 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/shared/infrastructure/database/index.js'
 import { stores } from '@/drizzle/schema.js'
-import type { AuthStorePort, StoreCredential } from '@/auth/domain/ports/auth-store-port.js'
+import { Store } from '@/store/domain/aggregates/store.js'
+import type { StoreRepositoryPort } from '@/store/domain/repositories/store-repository-port.js'
 
-export class StoreRepository implements AuthStorePort {
-  async findByAccount(account: string): Promise<StoreCredential | null> {
-    const [store] = await db
-      .select({
-        id: stores.id,
-        account: stores.account,
-        password: stores.password,
-        status: stores.status,
-      })
-      .from(stores)
-      .where(eq(stores.account, account))
-      .limit(1)
+export class StoreRepository implements StoreRepositoryPort {
+  async findById(id: number): Promise<Store | null> {
+    const [row] = await db.select().from(stores).where(eq(stores.id, id)).limit(1)
+    return row ? this.toAggregate(row) : null
+  }
 
-    return store ?? null
+  private toAggregate(row: typeof stores.$inferSelect): Store {
+    return new Store(
+      row.id,
+      row.name,
+      row.province,
+      row.city,
+      row.district,
+      row.address,
+      row.status,
+      row.businessHours,
+      row.phone,
+      row.longitude,
+      row.latitude,
+      row.email,
+      row.createdAt,
+      row.updatedAt,
+    )
   }
 }
 

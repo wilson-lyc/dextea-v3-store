@@ -1,13 +1,12 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { loginRequestSchema } from '@dextea/constraints'
+import type { LoginRequest } from '@dextea/constraints'
 import { success } from '@/shared/errors/response.js'
 import { loginUseCase } from '@/composition-root.js'
 
 export async function loginController(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Body: LoginRequest }>,
   reply: FastifyReply,
 ): Promise<void> {
-  const body = loginRequestSchema.parse(request.body)
-  const result = await loginUseCase.execute(body)
+  const result = await loginUseCase.execute(request.body)
   return reply.send(success(result))
 }

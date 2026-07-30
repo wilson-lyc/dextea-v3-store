@@ -1,6 +1,11 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import { loginRequestSchema } from '@dextea/constraints'
 import { loginController } from '../controllers/login-controller.js'
 
-export async function authRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/login', loginController)
+export const authRoutes: FastifyPluginAsyncZod = async (app) => {
+  app.post('/login', {
+    schema: {
+      body: loginRequestSchema,
+    },
+  }, loginController)
 }

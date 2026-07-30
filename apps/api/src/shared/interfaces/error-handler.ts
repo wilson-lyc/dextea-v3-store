@@ -1,47 +1,32 @@
 import type { FastifyError, FastifyInstance } from 'fastify'
-import { ZodError } from 'zod'
-import { BizError } from '../errors/biz-error.js'
-import { toApiResponse } from '../errors/response.js'
-import { logger } from '../utils/logger.js'
-import type { ApiResponse } from '../types/api-response.js'
-
-const VALIDATION_ERROR_CODE = 400
-const SYSTEM_ERROR_CODE = 500
-const SYSTEM_ERROR_MESSAGE = '服务异常，稍后重试'
-
-function buildZodMessage(error: ZodError): string {
-  if (error.issues.length === 0) {
-    return error.message
-  }
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.join('.')
-      return path ? `${path}: ${issue.message}` : issue.message
-    })
-    .join('; ')
-}
+import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod'
+import { BizError } from '@/shared/errors/biz-error.js'
+import { logger } from '@/shared/utils/logger.js'
 
 export function registerErrorHandler(app: FastifyInstance): void {
-  app.setErrorHandler((error: FastifyError, _request, reply) => {
-    if (error instanceof ZodError) {
-      const body: ApiResponse = {
-        code: VALIDATION_ERROR_CODE,
-        message: buildZodMessage(error),
+  app.setErrorHandler<FastifyError>((error, _request, reply) => {
+    if (hasZodFastifySchemaValidationErrors(error)) {
+      const messages = (error.validation ?? []).map((item) => item.message ?? '')
+      return reply.send({
+        code: 400,
+        message: messages.join('; '),
         data: null,
-      }
-      return reply.code(VALIDATION_ERROR_CODE).send(body)
+      })
     }
 
-    if (BizError.isBizError(error)) {
-      return reply.code(200).send(toApiResponse(error))
+    if (error instanceof BizError) {
+      return reply.send({
+        code: error.code,
+        message: error.message,
+        data: null,
+      })
     }
 
-    logger.error(error)
-    const body: ApiResponse = {
-      code: SYSTEM_ERROR_CODE,
-      message: SYSTEM_ERROR_MESSAGE,
+    logger.error('未处理的异常', error)
+    return reply.send({
+      code: 500,
+      message: error.message || '服务器内部错误',
       data: null,
-    }
-    return reply.code(SYSTEM_ERROR_CODE).send(body)
+    })
   })
 }
