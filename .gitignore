@@ -9,7 +9,5 @@ build/
 *.log
 .DS_Store
 coverage/
-.codebuddy
-.workbuddy
 apps/api/drizzle/
 .pnpm-store
