@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react"
+import { TriangleAlertIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -9,6 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { storeApi, type StoreView } from "@/lib/api/store"
@@ -17,44 +28,29 @@ import { logger } from "@/lib/logger"
 import { toast } from "@/lib/toast"
 import { StoreStatus, type StoreStatusCode } from "@dextea/constraints"
 
-interface StatusOption {
-  code: StoreStatusCode
-  label: string
-  description: string
-  variant: "default" | "outline" | "secondary" | "destructive"
+const CLOSED_CODE = StoreStatus[0].code
+const OPEN_CODE = StoreStatus[1].code
+
+const statusLabelMap: Record<number, string> = {
+  [StoreStatus[0].code]: StoreStatus[0].label,
+  [StoreStatus[1].code]: StoreStatus[1].label,
+  [StoreStatus[2].code]: StoreStatus[2].label,
+  [StoreStatus[3].code]: StoreStatus[3].label,
 }
 
-const statusOptions: StatusOption[] = [
-  {
-    code: StoreStatus[1].code,
-    label: StoreStatus[1].label,
-    description: "门店正常营业，可接单",
-    variant: "default",
-  },
-  {
-    code: StoreStatus[0].code,
-    label: StoreStatus[0].label,
-    description: "暂时关闭，不接新单",
-    variant: "outline",
-  },
-  {
-    code: StoreStatus[2].code,
-    label: StoreStatus[2].label,
-    description: "门店尚未开业",
-    variant: "secondary",
-  },
-  {
-    code: StoreStatus[3].code,
-    label: StoreStatus[3].label,
-    description: "门店已永久关闭",
-    variant: "destructive",
-  },
-]
+const statusDescMap: Record<number, string> = {
+  [StoreStatus[0].code]: "暂时关闭，不接新单",
+  [StoreStatus[1].code]: "门店正常营业，可接单",
+  [StoreStatus[2].code]: "门店尚未开业",
+  [StoreStatus[3].code]: "门店已永久关闭",
+}
 
 export default function StoreSettingsPage() {
   const [store, setStore] = useState<StoreView | null>(null)
   const [loading, setLoading] = useState(true)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+
+  const [pendingStatus, setPendingStatus] = useState<StoreStatusCode | null>(null)
 
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -83,18 +79,26 @@ export default function StoreSettingsPage() {
     }
   }, [])
 
-  async function handleUpdateStatus(status: StoreStatusCode) {
-    if (!store || store.status === status) return
+  const canToggle = store !== null && (store.status === CLOSED_CODE || store.status === OPEN_CODE)
+
+  function requestUpdateStatus(status: StoreStatusCode) {
+    if (!store || store.status === status || !canToggle) return
+    setPendingStatus(status)
+  }
+
+  async function confirmUpdateStatus() {
+    if (!store || pendingStatus === null) return
     setUpdatingStatus(true)
     try {
-      await storeApi.updateStatus({ status })
-      setStore({ ...store, status })
+      await storeApi.updateStatus({ status: pendingStatus })
+      setStore({ ...store, status: pendingStatus })
       toast.success("门店状态已更新")
     } catch (err) {
       logger.error("更新门店状态失败", err)
       toast.error(err instanceof ApiError ? err.message : "更新门店状态失败")
     } finally {
       setUpdatingStatus(false)
+      setPendingStatus(null)
     }
   }
 
@@ -141,6 +145,9 @@ export default function StoreSettingsPage() {
     )
   }
 
+  const currentLabel = statusLabelMap[store.status] ?? "未知"
+  const currentDesc = statusDescMap[store.status] ?? ""
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <Card>
@@ -182,42 +189,54 @@ export default function StoreSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>门店状态</CardTitle>
-          <CardDescription>切换门店营业状态</CardDescription>
+          <CardDescription>
+            {canToggle ? "切换门店营业状态" : "当前状态不可切换"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {statusOptions.map((option) => {
-              const isActive = store.status === option.code
-              return (
-                <button
-                  key={option.code}
-                  type="button"
-                  disabled={updatingStatus}
-                  onClick={() => handleUpdateStatus(option.code)}
-                  className={[
-                    "flex flex-col items-start gap-1 rounded-lg border p-4 text-left transition",
-                    "hover:border-ring hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                    isActive
-                      ? "border-primary bg-primary/5 ring-1 ring-primary"
-                      : "border-border",
-                  ].join(" ")}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{option.label}</span>
-                    {isActive && (
-                      <span className="rounded bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-                        当前
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {option.description}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          {canToggle ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([CLOSED_CODE, OPEN_CODE] as StoreStatusCode[]).map((code) => {
+                const isActive = store.status === code
+                const label = statusLabelMap[code]!
+                const desc = statusDescMap[code]!
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    disabled={updatingStatus}
+                    onClick={() => requestUpdateStatus(code)}
+                    className={[
+                      "flex flex-col items-start gap-1 rounded-lg border p-4 text-left transition",
+                      "hover:border-ring hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
+                      isActive
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-border",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{label}</span>
+                      {isActive && (
+                        <span className="rounded bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+                          当前
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{desc}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
+              <TriangleAlertIcon className="size-5 shrink-0 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{currentLabel}</span>
+                <span className="text-xs text-muted-foreground">{currentDesc}</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -271,6 +290,41 @@ export default function StoreSettingsPage() {
           </CardFooter>
         </form>
       </Card>
+
+      <AlertDialog
+        open={pendingStatus !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingStatus(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认切换门店状态</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatus !== null && (
+                <>
+                  确定要将门店状态切换为
+                  <span className="font-medium text-foreground">
+                    {" "}
+                    {statusLabelMap[pendingStatus]}{" "}
+                  </span>
+                  吗？
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="default"
+              disabled={updatingStatus}
+              onClick={confirmUpdateStatus}
+            >
+              {updatingStatus ? "提交中..." : "确认切换"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

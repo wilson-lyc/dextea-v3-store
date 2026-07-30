@@ -2,7 +2,7 @@ import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
 import { StoreErrorCode } from '@/store/domain/errors.js'
 import type { StoreRepositoryPort } from '@/store/domain/repositories/store-repository-port.js'
-import { storeStatusCode } from '@dextea/constraints'
+import { storeStatusCode, type StoreStatusCode } from '@dextea/constraints'
 
 export class UpdateStoreStatusUseCase {
   constructor(private readonly storeRepository: StoreRepositoryPort) {}
@@ -13,8 +13,8 @@ export class UpdateStoreStatusUseCase {
       throw new BizError(StoreErrorCode.STORE_NOT_FOUND)
     }
 
-    const validStatuses = Object.values(storeStatusCode)
-    if (!validStatuses.includes(status as (typeof validStatuses)[number])) {
+    const allowed: StoreStatusCode[] = [storeStatusCode.CLOSED, storeStatusCode.OPEN]
+    if (!allowed.includes(status as StoreStatusCode)) {
       throw new BizError(StoreErrorCode.INVALID_STORE_STATUS)
     }
 

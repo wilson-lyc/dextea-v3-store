@@ -3,6 +3,7 @@ import { db } from '@/shared/infrastructure/database/index.js'
 import { stores } from '@/drizzle/schema.js'
 import { Store } from '@/store/domain/aggregates/store.js'
 import type { StoreRepositoryPort } from '@/store/domain/repositories/store-repository-port.js'
+import type { StoreStatusCode } from '@dextea/constraints'
 
 export class StoreRepository implements StoreRepositoryPort {
   async findById(id: number): Promise<Store | null> {
@@ -36,14 +37,14 @@ export class StoreRepository implements StoreRepositoryPort {
       row.city,
       row.district,
       row.address,
-      row.status,
+      row.status as StoreStatusCode,
       row.businessHours,
       row.phone,
       Number(row.longitude),
       Number(row.latitude),
       row.email,
-      row.createdAt,
-      row.updatedAt,
+      row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+      row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
     )
   }
 }

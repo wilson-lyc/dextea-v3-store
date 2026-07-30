@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { ArrowLeft, Package, Settings } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -59,8 +60,10 @@ export function AdminLayout() {
           </ul>
         </nav>
 
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+        <main className="flex-1 p-6">
+          <ScrollArea className="h-full">
+            <Outlet />
+          </ScrollArea>
         </main>
       </div>
     </div>
