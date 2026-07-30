@@ -61,7 +61,7 @@ export function AdminLayout() {
         </nav>
 
         <main className="min-w-0 flex-1 p-6">
-          <ScrollArea className="h-full p-px">
+          <ScrollArea className="h-full p-[3px]">
             <Outlet />
           </ScrollArea>
         </main>
