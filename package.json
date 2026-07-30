@@ -1,0 +1,16 @@
+{
+  "name": "dextea-store",
+  "version": "1.0.0",
+  "description": "Dextea store monorepo: backend API service and frontend Web service",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "api": "pnpm --filter api run dev",
+    "web": "pnpm --filter web run dev",
+    "dev": "pnpm -r --parallel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}
