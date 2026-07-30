@@ -1,4 +1,4 @@
-import jwt, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import { config } from '@/shared/config.js'
 import { BizError } from '@/shared/errors/biz-error.js'
 import type {
@@ -30,10 +30,10 @@ export class JwtService implements TokenProvider {
     try {
       return jwt.verify(token, this.secret) as VerifiedToken
     } catch (error) {
-      if (error instanceof TokenExpiredError) {
+      if (error instanceof jwt.TokenExpiredError) {
         throw new BizError(AuthErrorCode.INVALID_TOKEN, '令牌已过期，请重新登录')
       }
-      if (error instanceof JsonWebTokenError) {
+      if (error instanceof jwt.JsonWebTokenError) {
         throw new BizError(AuthErrorCode.INVALID_TOKEN)
       }
       throw error
