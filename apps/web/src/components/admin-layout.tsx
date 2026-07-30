@@ -28,15 +28,15 @@ export function AdminLayout() {
   const navigate = useNavigate()
 
   return (
-    <div className="flex min-h-svh flex-col">
-      <header className="flex items-center gap-4 border-b px-6 py-3">
+    <div className="flex h-svh flex-col">
+      <header className="flex shrink-0 items-center gap-4 border-b px-6 py-3">
         <Button variant="ghost" size="icon-sm" onClick={() => navigate("/")}>
           <ArrowLeft />
         </Button>
         <h1 className="text-lg font-semibold tracking-tight">后台设置</h1>
       </header>
 
-      <div className="flex flex-1">
+      <div className="flex min-h-0 flex-1">
         <nav className="w-56 shrink-0 border-r p-3">
           <ul className="flex flex-col gap-1">
             {navItems.map(({ to, label, icon: Icon }) => (
@@ -60,8 +60,8 @@ export function AdminLayout() {
           </ul>
         </nav>
 
-        <main className="flex-1 p-6">
-          <ScrollArea className="h-full">
+        <main className="min-w-0 flex-1 p-6">
+          <ScrollArea className="h-full pr-px">
             <Outlet />
           </ScrollArea>
         </main>
