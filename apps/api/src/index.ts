@@ -9,6 +9,7 @@ import { logger } from '@/shared/utils/logger.js'
 import { jwtService } from '@/store/infrastructure/jwt/jwt-service.js'
 import { loginRoutes } from '@/store/interfaces/http/routes/login-routes.js'
 import { storeRoutes } from '@/store/interfaces/http/routes/store-routes.js'
+import { productRoutes } from '@/product/interfaces/http/routes/product-routes.js'
 
 const app = Fastify({
   logger: true,
@@ -22,6 +23,7 @@ await app.register(cors)
 app.addHook('onRequest', createStoreIdInterceptor(jwtService))
 await app.register(loginRoutes, { prefix: '/api/v1/auth' })
 await app.register(storeRoutes, { prefix: '/api/v1/store' })
+await app.register(productRoutes, { prefix: '/api/v1/products' })
 
 registerErrorHandler(app)
 
