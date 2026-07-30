@@ -1,0 +1,9 @@
+---
+description: 当需要更新数据库结构时，遵循此规则。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-07-30T04:58:21.423Z
+provider: 
+---
+
+当需要更新数据库结构时，只需更新apps/api/drizzle/schema.ts，由人工完成数据库结构的变更。
