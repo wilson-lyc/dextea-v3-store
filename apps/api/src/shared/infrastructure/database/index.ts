@@ -1,13 +1,16 @@
 import { drizzle } from 'drizzle-orm/mysql2'
 import mysql from 'mysql2/promise'
+import { config } from '../../config.js'
 
-const connectionString = process.env.DATABASE_URL
+const { host, port, database, user, password } = config.database
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not set')
-}
-
-const pool = mysql.createPool(connectionString)
+const pool = mysql.createPool({
+  host,
+  port,
+  database,
+  user,
+  password,
+})
 
 export const db = drizzle(pool)
 export { pool }
