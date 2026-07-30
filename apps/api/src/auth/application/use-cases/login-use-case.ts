@@ -1,4 +1,5 @@
 import { BizError } from '@/shared/errors/biz-error.js'
+import { logger } from '@/shared/utils/logger.js'
 import { verifyPassword } from '@/shared/infrastructure/security/password.js'
 import { AuthErrorCode } from '@/auth/domain/errors.js'
 import type { AuthStorePort } from '@/auth/domain/ports/auth-store-port.js'
@@ -21,7 +22,7 @@ export class LoginUseCase {
     try {
       passwordMatches = await verifyPassword(input.password, store.password)
     } catch (error) {
-      console.error('argon2 校验门店密码时发生系统异常', error)
+      logger.error('argon2 校验门店密码时发生系统异常', error)
       throw new BizError(AuthErrorCode.INVALID_CREDENTIALS)
     }
 

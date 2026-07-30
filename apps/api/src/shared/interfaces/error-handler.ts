@@ -2,11 +2,12 @@ import type { FastifyError, FastifyInstance } from 'fastify'
 import { ZodError } from 'zod'
 import { BizError } from '../errors/biz-error.js'
 import { toApiResponse } from '../errors/response.js'
+import { logger } from '../utils/logger.js'
 import type { ApiResponse } from '../types/api-response.js'
 
 const VALIDATION_ERROR_CODE = 400
 const SYSTEM_ERROR_CODE = 500
-const SYSTEM_ERROR_MESSAGE = '服务器异常，请稍后重试'
+const SYSTEM_ERROR_MESSAGE = '服务异常，稍后重试'
 
 function buildZodMessage(error: ZodError): string {
   if (error.issues.length === 0) {
@@ -35,7 +36,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
       return reply.code(200).send(toApiResponse(error))
     }
 
-    app.log.error(error)
+    logger.error(error)
     const body: ApiResponse = {
       code: SYSTEM_ERROR_CODE,
       message: SYSTEM_ERROR_MESSAGE,
