@@ -75,8 +75,9 @@ export type OrderPaymentStatusCode = (typeof OrderPaymentStatus)[number]['code']
 export const orderPaymentStatusCode = codeMap(OrderPaymentStatus)
 
 export const OrderPaymentMethod = [
-  { code: 0, key: 'ALIPAY', label: '支付宝' },
-  { code: 1, key: 'WEIXIN', label: '微信' },
+  { code: 0, key: 'CASH', label: '现金' },
+  { code: 1, key: 'ALIPAY', label: '支付宝' },
+  { code: 2, key: 'WEIXIN', label: '微信' },
 ] as const
 export type OrderPaymentMethodCode = (typeof OrderPaymentMethod)[number]['code']
 export const orderPaymentMethodCode = codeMap(OrderPaymentMethod)
