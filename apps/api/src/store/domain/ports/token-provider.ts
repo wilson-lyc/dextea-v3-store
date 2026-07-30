@@ -1,8 +1,5 @@
 export interface JwtUserClaims {
-  userId: string
-  account: string
-  role?: string
-  [key: string]: unknown
+  storeId: string
 }
 
 export interface VerifiedToken extends JwtUserClaims {

@@ -1,6 +1,8 @@
 export class Store {
   constructor(
     public readonly id: number,
+    public readonly account: string,
+    public readonly password: string,
     public readonly name: string,
     public readonly province: string,
     public readonly city: string,

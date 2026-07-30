@@ -5,8 +5,8 @@ import type {
   JwtUserClaims,
   TokenProvider,
   VerifiedToken,
-} from '@/auth/domain/ports/token-provider.js'
-import { AuthErrorCode } from '@/auth/domain/errors.js'
+} from '@/store/domain/ports/token-provider.js'
+import { StoreErrorCode } from '@/store/domain/errors.js'
 
 export class JwtService implements TokenProvider {
   private readonly secret: string
@@ -31,10 +31,10 @@ export class JwtService implements TokenProvider {
       return jwt.verify(token, this.secret) as VerifiedToken
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new BizError(AuthErrorCode.INVALID_TOKEN, '令牌已过期，请重新登录')
+        throw new BizError(StoreErrorCode.INVALID_TOKEN, '令牌已过期，请重新登录')
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new BizError(AuthErrorCode.INVALID_TOKEN)
+        throw new BizError(StoreErrorCode.INVALID_TOKEN)
       }
       throw error
     }

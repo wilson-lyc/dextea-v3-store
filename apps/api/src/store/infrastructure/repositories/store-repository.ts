@@ -10,9 +10,16 @@ export class StoreRepository implements StoreRepositoryPort {
     return row ? this.toAggregate(row) : null
   }
 
+  async findByAccount(account: string): Promise<Store | null> {
+    const [row] = await db.select().from(stores).where(eq(stores.account, account)).limit(1)
+    return row ? this.toAggregate(row) : null
+  }
+
   private toAggregate(row: typeof stores.$inferSelect): Store {
     return new Store(
       row.id,
+      row.account,
+      row.password,
       row.name,
       row.province,
       row.city,

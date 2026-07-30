@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { TokenProvider } from '@/auth/domain/ports/token-provider.js'
+import type { TokenProvider } from '@/store/domain/ports/token-provider.js'
 
 const BEARER_PREFIX = 'Bearer '
 
@@ -18,6 +18,6 @@ export function createStoreIdInterceptor(tokenProvider: TokenProvider) {
     }
 
     const claims = tokenProvider.verifyToken(token)
-    request.headers['x-store-id'] = String(claims.userId)
+    request.headers['x-store-id'] = String(claims.storeId)
   }
 }

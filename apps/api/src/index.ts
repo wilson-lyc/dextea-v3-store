@@ -6,8 +6,8 @@ import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-
 import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
 import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
 import { logger } from '@/shared/utils/logger.js'
-import { jwtService } from '@/auth/infrastructure/jwt/jwt-service.js'
-import { authRoutes } from '@/auth/interfaces/http/routes/auth-routes.js'
+import { jwtService } from '@/store/infrastructure/jwt/jwt-service.js'
+import { loginRoutes } from '@/store/interfaces/http/routes/login-routes.js'
 import { storeRoutes } from '@/store/interfaces/http/routes/store-routes.js'
 
 const app = Fastify({
@@ -20,7 +20,7 @@ const app = Fastify({
 await app.register(helmet)
 await app.register(cors)
 app.addHook('onRequest', createStoreIdInterceptor(jwtService))
-await app.register(authRoutes, { prefix: '/api/auth' })
+await app.register(loginRoutes, { prefix: '/api/auth' })
 await app.register(storeRoutes, { prefix: '/api/stores' })
 
 registerErrorHandler(app)
