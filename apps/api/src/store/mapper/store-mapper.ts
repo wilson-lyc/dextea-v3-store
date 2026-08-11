@@ -1,5 +1,5 @@
 import type { StoreStatusCode } from '@dextea/constraints'
-import type { Store } from '@/store/domain/aggregates/store.js'
+import type { Store } from '@/store/model/store.js'
 
 export interface StoreView {
   id: number

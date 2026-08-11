@@ -1,12 +1,12 @@
 import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
 import { verifyPassword, hashPassword } from '@/shared/infrastructure/security/password.js'
-import { StoreErrorCode } from '@/store/domain/errors.js'
-import type { StoreRepositoryPort } from '@/store/domain/repositories/store-repository-port.js'
+import { StoreErrorCode } from '@/store/error.js'
+import type { StoreRepository } from '@/store/repository/store-repository.js'
 import type { ResetPasswordRequest } from '@dextea/constraints'
 
-export class ResetPasswordUseCase {
-  constructor(private readonly storeRepository: StoreRepositoryPort) {}
+export class ResetPasswordService {
+  constructor(private readonly storeRepository: StoreRepository) {}
 
   async execute(id: number, input: ResetPasswordRequest): Promise<void> {
     const store = await this.storeRepository.findById(id)

@@ -1,18 +1,18 @@
-import { LoginUseCase } from '@/store/application/use-cases/login-use-case.js'
-import { GetStoreUseCase } from '@/store/application/use-cases/get-store-use-case.js'
-import { UpdateStoreStatusUseCase } from '@/store/application/use-cases/update-store-status-use-case.js'
-import { ResetPasswordUseCase } from '@/store/application/use-cases/reset-password-use-case.js'
-import { storeRepository } from '@/store/infrastructure/repositories/store-repository.js'
-import { jwtService } from '@/store/infrastructure/jwt/jwt-service.js'
+import { LoginService } from '@/store/service/login-service.js'
+import { GetStoreService } from '@/store/service/get-store-service.js'
+import { UpdateStoreStatusService } from '@/store/service/update-store-status-service.js'
+import { ResetPasswordService } from '@/store/service/reset-password-service.js'
+import { storeRepository } from '@/store/repository/store-repository.js'
+import { jwtService } from '@/store/service/jwt-service.js'
 import { redisDistributedLock } from '@/shared/infrastructure/redis/redis-distributed-lock-adapter.js'
-import { ListActiveProductsUseCase } from '@/product/application/use-cases/list-active-products-use-case.js'
-import { productRepository } from '@/product/infrastructure/repositories/product-repository.js'
+import { ListActiveProductsService } from '@/product/service/list-active-products-service.js'
+import { productRepository } from '@/product/repository/product-repository.js'
 
-export const loginUseCase = new LoginUseCase(storeRepository, jwtService)
-export const getStoreUseCase = new GetStoreUseCase(storeRepository)
-export const updateStoreStatusUseCase = new UpdateStoreStatusUseCase(
+export const loginService = new LoginService(storeRepository, jwtService)
+export const getStoreService = new GetStoreService(storeRepository)
+export const updateStoreStatusService = new UpdateStoreStatusService(
   storeRepository,
   redisDistributedLock,
 )
-export const resetPasswordUseCase = new ResetPasswordUseCase(storeRepository)
-export const listActiveProductsUseCase = new ListActiveProductsUseCase(productRepository)
+export const resetPasswordService = new ResetPasswordService(storeRepository)
+export const listActiveProductsService = new ListActiveProductsService(productRepository)

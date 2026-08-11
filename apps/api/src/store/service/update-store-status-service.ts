@@ -1,15 +1,15 @@
 import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
-import { StoreErrorCode } from '@/store/domain/errors.js'
-import type { StoreRepositoryPort } from '@/store/domain/repositories/store-repository-port.js'
+import { StoreErrorCode } from '@/store/error.js'
+import type { StoreRepository } from '@/store/repository/store-repository.js'
 import type { DistributedLockPort } from '@/shared/domain/ports/distributed-lock-port.js'
 import { storeStatusCode, type StoreStatusCode } from '@dextea/constraints'
 
 const STORE_STATUS_LOCK_PREFIX = 'dextea:lock:store:status'
 
-export class UpdateStoreStatusUseCase {
+export class UpdateStoreStatusService {
   constructor(
-    private readonly storeRepository: StoreRepositoryPort,
+    private readonly storeRepository: StoreRepository,
     private readonly distributedLock: DistributedLockPort,
   ) {}
 

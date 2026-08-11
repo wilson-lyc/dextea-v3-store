@@ -7,7 +7,7 @@ export interface VerifiedToken extends JwtUserClaims {
   exp: number
 }
 
-export interface TokenProvider {
+export interface TokenService {
   generateToken(claims: JwtUserClaims): { token: string; expiresIn: number }
   verifyToken(token: string): VerifiedToken
 }

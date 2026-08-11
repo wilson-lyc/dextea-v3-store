@@ -1,15 +1,15 @@
 import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
 import { verifyPassword } from '@/shared/infrastructure/security/password.js'
-import { StoreErrorCode } from '@/store/domain/errors.js'
-import type { StoreRepositoryPort } from '@/store/domain/repositories/store-repository-port.js'
-import type { TokenProvider } from '@/store/domain/ports/token-provider.js'
+import { StoreErrorCode } from '@/store/error.js'
+import type { StoreRepository } from '@/store/repository/store-repository.js'
+import type { TokenService } from '@/store/service/token-service.js'
 import type { LoginRequest, LoginResponse } from '@dextea/constraints'
 
-export class LoginUseCase {
+export class LoginService {
   constructor(
-    private readonly storeRepository: StoreRepositoryPort,
-    private readonly tokenProvider: TokenProvider,
+    private readonly storeRepository: StoreRepository,
+    private readonly tokenService: TokenService,
   ) {}
 
   async execute(input: LoginRequest): Promise<LoginResponse> {
@@ -34,7 +34,7 @@ export class LoginUseCase {
       throw new BizError(StoreErrorCode.STORE_DISABLED)
     }
 
-    const { token } = this.tokenProvider.generateToken({
+    const { token } = this.tokenService.generateToken({
       storeId: String(store.id),
     })
 

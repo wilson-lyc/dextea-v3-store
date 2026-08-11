@@ -1,5 +1,5 @@
 import type { ProductGlobalStatusCode } from '@dextea/constraints'
-import type { Product } from '@/product/domain/aggregates/product.js'
+import type { Product } from '@/product/model/product.js'
 
 export interface ProductView {
   id: number

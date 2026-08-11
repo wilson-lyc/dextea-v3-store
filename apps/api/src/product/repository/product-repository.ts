@@ -1,11 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/shared/infrastructure/database/index.js'
 import { products } from '@/drizzle/schema.js'
-import { Product } from '@/product/domain/aggregates/product.js'
-import type { ProductRepositoryPort } from '@/product/domain/repositories/product-repository-port.js'
+import { Product } from '@/product/model/product.js'
 import type { ProductGlobalStatusCode } from '@dextea/constraints'
 
-export class ProductRepository implements ProductRepositoryPort {
+export class ProductRepository {
   async findGloballyActive(): Promise<Product[]> {
     const rows = await db
       .select()
@@ -13,10 +12,10 @@ export class ProductRepository implements ProductRepositoryPort {
       .where(eq(products.status, 1))
       .orderBy(products.id)
 
-    return rows.map((row) => this.toAggregate(row))
+    return rows.map((row) => this.toModel(row))
   }
 
-  private toAggregate(row: typeof products.$inferSelect): Product {
+  private toModel(row: typeof products.$inferSelect): Product {
     return new Product(
       row.id,
       row.name,

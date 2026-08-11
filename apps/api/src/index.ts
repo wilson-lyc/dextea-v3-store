@@ -6,10 +6,9 @@ import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-
 import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
 import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
 import { logger } from '@/shared/utils/logger.js'
-import { jwtService } from '@/store/infrastructure/jwt/jwt-service.js'
-import { loginRoutes } from '@/store/interfaces/http/routes/login-routes.js'
-import { storeRoutes } from '@/store/interfaces/http/routes/store-routes.js'
-import { productRoutes } from '@/product/interfaces/http/routes/product-routes.js'
+import { jwtService } from '@/store/service/jwt-service.js'
+import { registerLoginRoutes, registerStoreRoutes } from '@/store/controller/store-controller.js'
+import { registerProductRoutes } from '@/product/controller/product-controller.js'
 
 const app = Fastify({
   logger: true,
@@ -21,9 +20,9 @@ const app = Fastify({
 await app.register(helmet)
 await app.register(cors)
 app.addHook('onRequest', createStoreIdInterceptor(jwtService))
-await app.register(loginRoutes, { prefix: '/api/v1/auth' })
-await app.register(storeRoutes, { prefix: '/api/v1/store' })
-await app.register(productRoutes, { prefix: '/api/v1/products' })
+await app.register(registerLoginRoutes, { prefix: '/api/v1/auth' })
+await app.register(registerStoreRoutes, { prefix: '/api/v1/store' })
+await app.register(registerProductRoutes, { prefix: '/api/v1/products' })
 
 registerErrorHandler(app)
 
