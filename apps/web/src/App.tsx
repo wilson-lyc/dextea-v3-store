@@ -7,6 +7,7 @@ import LoginPage from "@/pages/login"
 import ProductsPage from "@/pages/admin/products"
 import StoreSettingsPage from "@/pages/admin/settings"
 import CounterPage from "@/pages/counter"
+import PlaceholderPage from "@/pages/placeholder"
 
 export function App() {
   return (
