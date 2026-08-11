@@ -90,16 +90,19 @@ export default function CounterPage() {
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden p-4">
         {orders.length === 0 ? (
-          <div className="col-span-full flex flex-1 flex-col items-center justify-center gap-2 py-20 text-center">
+          <div className="flex w-full flex-col items-center justify-center gap-2 text-center">
             <Coffee className="size-8 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">当前没有订单</p>
           </div>
         ) : (
           orders.map((order) => (
-            <Card key={order.id} className="flex flex-col">
-              <CardContent className="flex flex-col gap-3">
+            <Card
+              key={order.id}
+              className="flex w-72 shrink-0 flex-col sm:w-80"
+            >
+              <CardContent className="flex h-full flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base font-semibold">{order.code}</span>
@@ -113,7 +116,7 @@ export default function CounterPage() {
                     {order.status}
                   </span>
                 </div>
-                <ul className="space-y-1">
+                <ul className="flex-1 space-y-1">
                   {order.items.map((line) => (
                     <li
                       key={line.id}
