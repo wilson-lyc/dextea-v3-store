@@ -29,7 +29,7 @@ const sections: Section[] = [
   {
     key: "counter",
     title: "前台服务",
-    description: "点单、收银与订单处理等日常经营操作",
+    description: "实时查看门店订单与制作、取餐状态",
     icon: Store,
     path: "/counter",
   },

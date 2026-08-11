@@ -1,40 +1,25 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  ArrowLeft,
-  Coffee,
-  Flame,
-  Minus,
-  Plus,
-  ShoppingCart,
-  Trash2,
-} from "lucide-react"
+import { ArrowLeft, Coffee } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { toast } from "@/lib/toast"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   activeOrders,
-  categories,
-  menuItems,
   storeName,
-  type MenuItem,
+  type Order,
+  type OrderStatus,
 } from "./data"
 
-interface CartEntry {
-  item: MenuItem
-  quantity: number
-  note: string
-}
+const statusTabs: { key: OrderStatus | "all"; label: string }[] = [
+  { key: "all", label: "全部" },
+  { key: "待制作", label: "待制作" },
+  { key: "制作中", label: "制作中" },
+  { key: "待取餐", label: "待取餐" },
+  { key: "已完成", label: "已完成" },
+]
 
-const statusStyles: Record<string, string> = {
+const statusStyles: Record<OrderStatus, string> = {
   待制作: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
   制作中: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
   待取餐: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
@@ -43,74 +28,23 @@ const statusStyles: Record<string, string> = {
 
 export default function CounterPage() {
   const navigate = useNavigate()
-  const [activeCategory, setActiveCategory] = useState(categories[0].id)
-  const [cart, setCart] = useState<Record<string, CartEntry>>({})
-  const [customer, setCustomer] = useState("")
-  const [orderType, setOrderType] = useState<"堂食" | "外带">("堂食")
+  const [tab, setTab] = useState<OrderStatus | "all">("all")
 
-  const filteredItems = useMemo(
-    () => menuItems.filter((item) => item.categoryId === activeCategory),
-    [activeCategory]
+  const orders = useMemo<Order[]>(
+    () =>
+      tab === "all"
+        ? activeOrders
+        : activeOrders.filter((order) => order.status === tab),
+    [tab]
   )
 
-  const cartList = useMemo(() => Object.values(cart), [cart])
-  const totalQuantity = cartList.reduce((sum, e) => sum + e.quantity, 0)
-  const totalPrice = cartList.reduce(
-    (sum, e) => sum + e.item.price * e.quantity,
-    0
-  )
-
-  function addToCart(item: MenuItem) {
-    setCart((prev) => {
-      const existing = prev[item.id]
-      return {
-        ...prev,
-        [item.id]: {
-          item,
-          quantity: existing ? existing.quantity + 1 : 1,
-          note: existing?.note ?? "",
-        },
-      }
-    })
-  }
-
-  function changeQuantity(id: string, delta: number) {
-    setCart((prev) => {
-      const existing = prev[id]
-      if (!existing) return prev
-      const quantity = existing.quantity + delta
-      if (quantity <= 0) {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      }
-      return { ...prev, [id]: { ...existing, quantity } }
-    })
-  }
-
-  function updateNote(id: string, note: string) {
-    setCart((prev) => {
-      const existing = prev[id]
-      if (!existing) return prev
-      return { ...prev, [id]: { ...existing, note } }
-    })
-  }
-
-  function clearCart() {
-    setCart({})
-    setCustomer("")
-  }
-
-  function handleCheckout() {
-    if (cartList.length === 0) {
-      toast.error("请先选择商品")
-      return
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { all: activeOrders.length }
+    for (const order of activeOrders) {
+      map[order.status] = (map[order.status] ?? 0) + 1
     }
-    toast.success(
-      `已下单：${orderType} · ${cartList.length} 种商品 · ¥${totalPrice.toFixed(2)}`
-    )
-    clearCart()
-  }
+    return map
+  }, [])
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
@@ -130,241 +64,61 @@ export default function CounterPage() {
             </div>
             <div className="leading-tight">
               <h1 className="text-base font-semibold">{storeName}</h1>
-              <p className="text-xs text-muted-foreground">前台点单收银</p>
+              <p className="text-xs text-muted-foreground">前台订单查看</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="hidden sm:inline">当前队列</span>
+          <span className="hidden sm:inline">订单总数</span>
           <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
             {activeOrders.length}
           </span>
         </div>
       </header>
 
-      <div className="grid flex-1 grid-cols-1 gap-0 overflow-hidden lg:grid-cols-[1fr_360px_320px]">
-        <section className="flex min-h-0 flex-col overflow-hidden">
-          <div className="flex gap-2 overflow-x-auto border-b bg-background px-4 py-3">
-            {categories.map((cat) => (
-              <Button
-                key={cat.id}
-                size="sm"
-                variant={activeCategory === cat.id ? "default" : "outline"}
-                onClick={() => setActiveCategory(cat.id)}
-              >
-                {cat.name}
-              </Button>
-            ))}
-          </div>
-          <div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredItems.map((item) => {
-              const entry = cart[item.id]
-              return (
-                <Card key={item.id} size="sm" className="flex flex-col">
-                  <CardHeader className="pb-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="flex items-center gap-1.5">
-                        {item.name}
-                        {item.hot && (
-                          <Flame className="size-3.5 text-orange-500" />
-                        )}
-                      </CardTitle>
-                      <span className="shrink-0 text-base font-semibold">
-                        ¥{item.price}
-                      </span>
-                    </div>
-                    {item.tags && item.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {item.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </CardHeader>
-                  <CardFooter className="justify-end pt-3">
-                    {entry ? (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="icon-xs"
-                          variant="outline"
-                          onClick={() => changeQuantity(item.id, -1)}
-                          aria-label="减少"
-                        >
-                          <Minus />
-                        </Button>
-                        <span className="w-5 text-center text-sm font-medium">
-                          {entry.quantity}
-                        </span>
-                        <Button
-                          size="icon-xs"
-                          variant="outline"
-                          onClick={() => changeQuantity(item.id, 1)}
-                          aria-label="增加"
-                        >
-                          <Plus />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => addToCart(item)}
-                      >
-                        <Plus />
-                        加入
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
-        </section>
+      <div className="flex gap-2 overflow-x-auto border-b bg-background px-4 py-3">
+        {statusTabs.map((item) => (
+          <Button
+            key={item.key}
+            size="sm"
+            variant={tab === item.key ? "default" : "outline"}
+            onClick={() => setTab(item.key)}
+          >
+            {item.label}
+            <span className="ml-1 opacity-70">{counts[item.key] ?? 0}</span>
+          </Button>
+        ))}
+      </div>
 
-        <section className="flex min-h-0 flex-col border-l bg-background">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <ShoppingCart className="size-4" />
-              购物清单
-              {totalQuantity > 0 && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  {totalQuantity}
-                </span>
-              )}
-            </h2>
-            {cartList.length > 0 && (
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={clearCart}
-                className="text-muted-foreground"
-              >
-                <Trash2 />
-                清空
-              </Button>
-            )}
+      <div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-4 sm:grid-cols-2 xl:grid-cols-3">
+        {orders.length === 0 ? (
+          <div className="col-span-full flex flex-1 flex-col items-center justify-center gap-2 py-20 text-center">
+            <Coffee className="size-8 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">当前没有订单</p>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
-            {cartList.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-                <ShoppingCart className="size-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">还没有选择商品</p>
-              </div>
-            ) : (
-              cartList.map((entry) => (
-                <div
-                  key={entry.item.id}
-                  className="flex flex-col gap-2 rounded-xl border border-border p-3"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium">
-                      {entry.item.name}
-                    </span>
-                    <span className="text-sm font-semibold">
-                      ¥{(entry.item.price * entry.quantity).toFixed(2)}
-                    </span>
-                  </div>
-                  <Input
-                    placeholder="备注（如：少糖、去冰）"
-                    value={entry.note}
-                    onChange={(e) => updateNote(entry.item.id, e.target.value)}
-                    className="h-7 text-xs"
-                  />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        size="icon-xs"
-                        variant="outline"
-                        onClick={() => changeQuantity(entry.item.id, -1)}
-                        aria-label="减少"
-                      >
-                        <Minus />
-                      </Button>
-                      <span className="w-5 text-center text-sm">
-                        {entry.quantity}
-                      </span>
-                      <Button
-                        size="icon-xs"
-                        variant="outline"
-                        onClick={() => changeQuantity(entry.item.id, 1)}
-                        aria-label="增加"
-                      >
-                        <Plus />
-                      </Button>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      ¥{entry.item.price} / 份
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="border-t p-4">
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              {(["堂食", "外带"] as const).map((type) => (
-                <Button
-                  key={type}
-                  size="sm"
-                  variant={orderType === type ? "default" : "outline"}
-                  onClick={() => setOrderType(type)}
-                >
-                  {type}
-                </Button>
-              ))}
-            </div>
-            <Input
-              placeholder="顾客称呼 / 取餐号"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              className="mb-3"
-            />
-            <div className="mb-3 flex items-end justify-between">
-              <span className="text-sm text-muted-foreground">合计</span>
-              <span className="text-2xl font-semibold">
-                ¥{totalPrice.toFixed(2)}
-              </span>
-            </div>
-            <Button className="w-full" size="lg" onClick={handleCheckout}>
-              确认下单 · 收银
-            </Button>
-          </div>
-        </section>
-
-        <section className="hidden min-h-0 flex-col border-l bg-background lg:flex">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-semibold">订单队列</h2>
-            <p className="text-xs text-muted-foreground">实时制作与取餐状态</p>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
-            {activeOrders.map((order) => (
-              <div
-                key={order.id}
-                className="flex flex-col gap-2 rounded-xl border border-border p-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm font-semibold">
-                    {order.code}
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+        ) : (
+          orders.map((order) => (
+            <Card key={order.id} className="flex flex-col">
+              <CardContent className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">{order.code}</span>
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                       {order.type}
                     </span>
-                  </span>
+                  </div>
                   <span
                     className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${statusStyles[order.status]}`}
                   >
                     {order.status}
                   </span>
                 </div>
-                <ul className="space-y-0.5 text-xs text-muted-foreground">
+                <ul className="space-y-1">
                   {order.items.map((line) => (
-                    <li key={line.id} className="flex justify-between">
+                    <li
+                      key={line.id}
+                      className="flex justify-between text-sm text-muted-foreground"
+                    >
                       <span>
                         {line.name} ×{line.quantity}
                       </span>
@@ -376,12 +130,12 @@ export default function CounterPage() {
                   <span className="text-muted-foreground">
                     {order.customer} · {order.createdAt}
                   </span>
-                  <span className="font-semibold">¥{order.total}</span>
+                  <span className="text-sm font-semibold">¥{order.total}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )
