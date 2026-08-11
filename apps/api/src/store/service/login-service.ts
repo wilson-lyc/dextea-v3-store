@@ -2,18 +2,13 @@ import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
 import { verifyPassword } from '@/shared/infrastructure/security/password.js'
 import { StoreErrorCode } from '@/store/error.js'
-import type { StoreRepository } from '@/store/repository/store-repository.js'
-import type { TokenService } from '@/store/service/token-service.js'
+import { storeRepository } from '@/store/repository/store-repository.js'
+import { jwtService } from '@/store/service/jwt-service.js'
 import type { LoginRequest, LoginResponse } from '@dextea/constraints'
 
 export class LoginService {
-  constructor(
-    private readonly storeRepository: StoreRepository,
-    private readonly tokenService: TokenService,
-  ) {}
-
   async execute(input: LoginRequest): Promise<LoginResponse> {
-    const store = await this.storeRepository.findByAccount(input.account)
+    const store = await storeRepository.findByAccount(input.account)
     if (!store) {
       throw new BizError(StoreErrorCode.INVALID_CREDENTIALS)
     }
@@ -34,7 +29,7 @@ export class LoginService {
       throw new BizError(StoreErrorCode.STORE_DISABLED)
     }
 
-    const { token } = this.tokenService.generateToken({
+    const { token } = jwtService.generateToken({
       storeId: String(store.id),
     })
 
@@ -44,3 +39,5 @@ export class LoginService {
     }
   }
 }
+
+export const loginService = new LoginService()

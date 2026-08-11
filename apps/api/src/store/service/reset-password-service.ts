@@ -2,14 +2,12 @@ import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
 import { verifyPassword, hashPassword } from '@/shared/infrastructure/security/password.js'
 import { StoreErrorCode } from '@/store/error.js'
-import type { StoreRepository } from '@/store/repository/store-repository.js'
+import { storeRepository } from '@/store/repository/store-repository.js'
 import type { ResetPasswordRequest } from '@dextea/constraints'
 
 export class ResetPasswordService {
-  constructor(private readonly storeRepository: StoreRepository) {}
-
   async execute(id: number, input: ResetPasswordRequest): Promise<void> {
-    const store = await this.storeRepository.findById(id)
+    const store = await storeRepository.findById(id)
     if (!store) {
       throw new BizError(StoreErrorCode.STORE_NOT_FOUND)
     }
@@ -31,7 +29,9 @@ export class ResetPasswordService {
     }
 
     const newHash = await hashPassword(input.newPassword)
-    await this.storeRepository.updatePassword(id, newHash)
+    await storeRepository.updatePassword(id, newHash)
     logger.info(`门店 ${id} 密码已重置`)
   }
 }
+
+export const resetPasswordService = new ResetPasswordService()

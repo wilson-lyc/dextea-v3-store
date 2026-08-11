@@ -1,4 +1,4 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import {
   loginRequestSchema,
   resetPasswordRequestSchema,
@@ -8,12 +8,10 @@ import {
   type UpdateStoreStatusRequest,
 } from '@dextea/constraints'
 import { success } from '@/shared/errors/response.js'
-import {
-  getStoreService,
-  loginService,
-  resetPasswordService,
-  updateStoreStatusService,
-} from '@/composition-root.js'
+import { loginService } from '@/store/service/login-service.js'
+import { getStoreService } from '@/store/service/get-store-service.js'
+import { updateStoreStatusService } from '@/store/service/update-store-status-service.js'
+import { resetPasswordService } from '@/store/service/reset-password-service.js'
 
 export async function loginController(
   request: FastifyRequest<{ Body: LoginRequest }>,
@@ -43,11 +41,11 @@ export async function resetPasswordController(
   reply: FastifyReply,
 ): Promise<void> {
   const storeId = Number(request.headers['x-store-id'])
-  await resetPasswordService.execute(storeId, request.body)
+  await resetPasswordService.execute(storeId, request.body as ResetPasswordRequest)
   return reply.send(success(null))
 }
 
-export function registerLoginRoutes(fastify: import('fastify').FastifyInstance): void {
+export function registerLoginRoutes(fastify: FastifyInstance): void {
   fastify.post('/login', {
     schema: {
       body: loginRequestSchema,
@@ -55,7 +53,7 @@ export function registerLoginRoutes(fastify: import('fastify').FastifyInstance):
   }, loginController)
 }
 
-export function registerStoreRoutes(fastify: import('fastify').FastifyInstance): void {
+export function registerStoreRoutes(fastify: FastifyInstance): void {
   fastify.get('/', getStoreController)
   fastify.put(
     '/status',

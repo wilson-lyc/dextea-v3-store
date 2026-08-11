@@ -1,6 +1,6 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { success } from '@/shared/errors/response.js'
-import { listActiveProductsService } from '@/composition-root.js'
+import { listActiveProductsService } from '@/product/service/list-active-products-service.js'
 
 export async function listActiveProductsController(
   _request: FastifyRequest,
@@ -10,8 +10,6 @@ export async function listActiveProductsController(
   return reply.send(success(result))
 }
 
-export function registerProductRoutes(
-  fastify: import('fastify').FastifyInstance,
-): void {
+export function registerProductRoutes(fastify: FastifyInstance): void {
   fastify.get('/', listActiveProductsController)
 }
