@@ -6,7 +6,7 @@ import HomePage from "@/pages/home"
 import LoginPage from "@/pages/login"
 import ProductsPage from "@/pages/admin/products"
 import StoreSettingsPage from "@/pages/admin/settings"
-import PlaceholderPage from "@/pages/placeholder"
+import CounterPage from "@/pages/counter"
 
 export function App() {
   return (
@@ -20,7 +20,7 @@ export function App() {
             <Route path="settings" element={<StoreSettingsPage />} />
             <Route path="products" element={<ProductsPage />} />
           </Route>
-          <Route path="/counter" element={<PlaceholderPage title="前台服务" />} />
+          <Route path="/counter" element={<CounterPage />} />
           <Route path="/screen" element={<PlaceholderPage title="服务大屏" />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
