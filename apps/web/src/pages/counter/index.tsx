@@ -97,7 +97,7 @@ export default function CounterPage() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden md:grid-cols-[340px_1fr]">
         <section className="flex min-h-0 flex-col overflow-hidden border-r">
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
             <div className="space-y-2 p-3">
               {orders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
@@ -148,7 +148,7 @@ export default function CounterPage() {
         <section className="flex min-h-0 flex-col overflow-hidden">
           {selected ? (
             <>
-              <ScrollArea className="flex-1">
+              <ScrollArea className="min-h-0 flex-1">
                 <div className="p-6">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -204,8 +204,9 @@ export default function CounterPage() {
                   </span>
                 </div>
               </div>
+              </ScrollArea>
 
-              <div className="flex items-center gap-3 border-t bg-background p-4">
+              <div className="flex shrink-0 items-center gap-3 border-t bg-background p-4">
                 <Button variant="outline" className="flex-1" disabled>
                   <Package />
                   打印小票
@@ -234,7 +235,6 @@ export default function CounterPage() {
                   </Button>
                 )}
                 </div>
-              </ScrollArea>
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
