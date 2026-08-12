@@ -18,7 +18,14 @@ const app = Fastify({
   .withTypeProvider<ZodTypeProvider>()
 
 await app.register(helmet)
-await app.register(cors)
+const corsOriginRaw = (process.env.CORS_ORIGIN ?? '').trim()
+const corsOrigin = corsOriginRaw === '*' || corsOriginRaw === ''
+  ? true
+  : corsOriginRaw.split(',').map((o) => o.trim()).filter(Boolean)
+await app.register(cors, {
+  origin: corsOrigin,
+  credentials: true,
+})
 app.addHook('onRequest', createStoreIdInterceptor(jwtService))
 await app.register(registerLoginRoutes, { prefix: '/api/v1/auth' })
 await app.register(registerStoreRoutes, { prefix: '/api/v1/store' })

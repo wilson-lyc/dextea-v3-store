@@ -7,7 +7,7 @@
   "scripts": {
     "api": "pnpm --filter api run dev",
     "web": "pnpm --filter web run dev",
-    "dev": "pnpm -r --parallel dev"
+    "dev": "pnpm -C packages/constraints build && pnpm -r --parallel dev"
   },
   "engines": {
     "node": ">=18"
