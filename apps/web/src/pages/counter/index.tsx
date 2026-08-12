@@ -111,6 +111,15 @@ export default function CounterPage() {
               )}
             </div>
           </ScrollArea>
+
+          <a
+            href="#"
+            onClick={(e) => e.preventDefault()}
+            className="shrink-0 border-t bg-background px-3 py-2.5 text-center text-xs text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
+          >
+            仅展示最近 3 小时内订单，查看更多数据请点击
+            <span className="font-medium text-primary">此处</span>
+          </a>
         </section>
 
         <section className="flex min-h-0 flex-col overflow-hidden">
