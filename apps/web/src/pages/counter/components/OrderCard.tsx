@@ -20,9 +20,7 @@ function useNow(intervalMs = 30000) {
 }
 
 function getWaitMinutes(createdAt: string, now: number) {
-  const [h, m] = createdAt.split(":").map(Number)
-  const ordered = new Date()
-  ordered.setHours(h, m, 0, 0)
+  const ordered = new Date(createdAt.replace(" ", "T"))
   return Math.max(0, Math.floor((now - ordered.getTime()) / 60000))
 }
 
@@ -41,7 +39,7 @@ export function OrderCard({ order, selected, onSelect }: OrderCardProps) {
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-center gap-2">
           <span className="text-base font-bold tracking-wide">{order.code}</span>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
             {order.type}
@@ -56,7 +54,7 @@ export function OrderCard({ order, selected, onSelect }: OrderCardProps) {
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>下单 {order.createdAt}</span>
+        <span>{order.createdAt}</span>
         <span
           className={`flex items-center gap-1 ${waiting ? "font-medium text-rose-500" : ""}`}
         >
