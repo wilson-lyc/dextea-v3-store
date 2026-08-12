@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { success } from '@/shared/errors/response.js'
+import { success } from '@/shared/types/api-response.js'
 import { listActiveProductsService } from '@/service/list-active-products-service.js'
 
 export async function listActiveProductsController(

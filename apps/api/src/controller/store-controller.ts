@@ -7,7 +7,7 @@ import {
   type ResetPasswordRequest,
   type UpdateStoreStatusRequest,
 } from '@dextea/constraints'
-import { success } from '@/shared/errors/response.js'
+import { success } from '@/shared/types/api-response.js'
 import { loginService } from '@/service/login-service.js'
 import { getStoreService } from '@/service/get-store-service.js'
 import { updateStoreStatusService } from '@/service/update-store-status-service.js'

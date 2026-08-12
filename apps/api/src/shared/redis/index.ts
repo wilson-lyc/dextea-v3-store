@@ -22,4 +22,3 @@ redis.on('connect', () => {
 })
 
 export { Redis }
-export * from './distributed-lock.js'

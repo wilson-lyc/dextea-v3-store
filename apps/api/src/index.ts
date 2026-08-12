@@ -35,8 +35,8 @@ registerErrorHandler(app)
 
 try {
   await app.listen({ port: config.port, host: config.host })
-  logger.info(`服务已启动，监听端口 ${config.port}`)
+  logger.info(`Server started, listening on port ${config.port}`)
 } catch (err) {
-  logger.error('服务启动失败', err)
+  logger.error('Failed to start server', err)
   process.exit(1)
 }

@@ -1,6 +1,6 @@
 import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
-import { verifyPassword } from '@/shared/infrastructure/security/password.js'
+import { verifyPassword } from '@/shared/security/password.js'
 import { StoreErrorCode } from '@/error/store-error.js'
 import { storeRepository } from '@/repository/store-repository.js'
 import { jwtService } from '@/service/jwt-service.js'

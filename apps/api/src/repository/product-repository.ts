@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { db } from '@/shared/infrastructure/database/index.js'
-import { products } from '@/drizzle/schema.js'
+import { db } from '@/shared/database/index.js'
+import { products } from '@/shared/database/schema.js'
 import { Product } from '@/model/product.js'
 import type { ProductGlobalStatusCode } from '@dextea/constraints'
 

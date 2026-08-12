@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { db } from '@/shared/infrastructure/database/index.js'
-import { stores } from '@/drizzle/schema.js'
+import { db } from '@/shared/database/index.js'
+import { stores } from '@/shared/database/schema.js'
 import { Store } from '@/model/store.js'
 import type { StoreStatusCode } from '@dextea/constraints'
 
