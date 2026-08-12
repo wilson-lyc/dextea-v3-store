@@ -9,6 +9,7 @@ import { config } from '@/config.js'
 import { authService } from '@/service/auth-service.js'
 import { registerLoginRoutes, registerStoreRoutes } from '@/controller/store-controller.js'
 import { registerProductRoutes } from '@/controller/product-controller.js'
+import { registerCustomizationRoutes } from '@/controller/customization-controller.js'
 
 const app = Fastify({
   logger: true,
@@ -30,6 +31,7 @@ app.addHook('onRequest', createStoreIdInterceptor(authService))
 await app.register(registerLoginRoutes, { prefix: '/api/v1/auth' })
 await app.register(registerStoreRoutes, { prefix: '/api/v1/store' })
 await app.register(registerProductRoutes, { prefix: '/api/v1/products' })
+await app.register(registerCustomizationRoutes, { prefix: '/api/v1/products' })
 
 registerErrorHandler(app)
 

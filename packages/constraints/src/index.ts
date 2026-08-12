@@ -1,3 +1,4 @@
+export * from './dto/request/list-product-customizations-request.js'
 export * from './dto/request/login-request.js'
 export * from './dto/request/reset-password-request.js'
 export * from './dto/request/update-store-status-request.js'

@@ -269,3 +269,27 @@ export const productStoreStatusCode = codeMap([
 ])
 
 export type ProductStoreStatusCode = (typeof productStoreStatusCode)[keyof typeof productStoreStatusCode]
+
+export const customizationItemStatusCode = codeMap([
+  { key: 'ITEM_DISABLED', value: 0, label: '禁用', color: { text: '', background: '', border: '' } },
+  { key: 'ITEM_ACTIVE', value: 1, label: '激活', color: { text: '', background: '', border: '' } },
+])
+
+export type CustomizationItemStatusCode =
+  (typeof customizationItemStatusCode)[keyof typeof customizationItemStatusCode]
+
+export const customizationOptionGlobalStatusCode = codeMap([
+  { key: 'GLOBAL_DISABLED', value: 0, label: '下架', color: { text: '', background: '', border: '' } },
+  { key: 'GLOBAL_ACTIVE', value: 1, label: '上架', color: { text: '', background: '', border: '' } },
+])
+
+export type CustomizationOptionGlobalStatusCode =
+  (typeof customizationOptionGlobalStatusCode)[keyof typeof customizationOptionGlobalStatusCode]
+
+export const customizationOptionStoreStatusCode = codeMap([
+  { key: 'STORE_DISABLED', value: 0, label: '禁用', color: { text: '', background: '', border: '' } },
+  { key: 'STORE_ACTIVE', value: 1, label: '启用', color: { text: '', background: '', border: '' } },
+])
+
+export type CustomizationOptionStoreStatusCode =
+  (typeof customizationOptionStoreStatusCode)[keyof typeof customizationOptionStoreStatusCode]
