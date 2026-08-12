@@ -9,10 +9,12 @@ export interface ApiResponse<T = unknown> {
   data: T
 }
 
-export function success<T>(data: T): ApiResponse<T> {
+export function success<T>(data: T): ApiResponse<T>
+export function success<T>(data: T, message: string): ApiResponse<T>
+export function success<T>(data: T, message?: string): ApiResponse<T> {
   return {
     code: SUCCESS_CODE,
-    message: SUCCESS_MESSAGE,
+    message: message ?? SUCCESS_MESSAGE,
     data,
   }
 }
