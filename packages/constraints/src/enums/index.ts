@@ -1,4 +1,4 @@
-import { createEnum, type EnumColor, type EnumItemConfig } from './enum.js'
+import { codeMap, createEnum, type EnumColor, type EnumItemConfig } from './enum.js'
 
 export { createEnum } from './enum.js'
 export type { EnumColor, EnumItemConfig, EnumInstance, EnumItem } from './enum.js'
@@ -32,6 +32,7 @@ export const StoreStatus = createEnum([
 
 export type StoreStatusKey = (typeof StoreStatus.items)[number]['key']
 export type StoreStatusValue = (typeof StoreStatus.items)[number]['value']
+export type StoreStatusCode = StoreStatusValue
 
 export const ProductGlobalStatus = createEnum([
   {
@@ -254,3 +255,10 @@ export const OrderDiningMethod = createEnum([
 
 export type OrderDiningMethodKey = (typeof OrderDiningMethod.items)[number]['key']
 export type OrderDiningMethodValue = (typeof OrderDiningMethod.items)[number]['value']
+
+export const productGlobalStatusCode = codeMap([
+  { key: 'GLOBAL_DISABLED', value: 0, label: '下架', color: { text: '', background: '', border: '' } },
+  { key: 'GLOBAL_ACTIVE', value: 1, label: '上架', color: { text: '', background: '', border: '' } },
+])
+
+export type ProductGlobalStatusCode = (typeof productGlobalStatusCode)[keyof typeof productGlobalStatusCode]

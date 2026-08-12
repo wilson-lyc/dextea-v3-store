@@ -28,21 +28,21 @@ import { logger } from "@/lib/logger"
 import { toast } from "@/lib/toast"
 import { StoreStatus, type StoreStatusCode } from "@dextea/constraints"
 
-const CLOSED_CODE = StoreStatus[0].code
-const OPEN_CODE = StoreStatus[1].code
+const CLOSED_CODE = StoreStatus.keyMap.CLOSED
+const OPEN_CODE = StoreStatus.keyMap.OPEN
 
 const statusLabelMap: Record<number, string> = {
-  [StoreStatus[0].code]: StoreStatus[0].label,
-  [StoreStatus[1].code]: StoreStatus[1].label,
-  [StoreStatus[2].code]: StoreStatus[2].label,
-  [StoreStatus[3].code]: StoreStatus[3].label,
+  [StoreStatus.items[0].value]: StoreStatus.items[0].label,
+  [StoreStatus.items[1].value]: StoreStatus.items[1].label,
+  [StoreStatus.items[2].value]: StoreStatus.items[2].label,
+  [StoreStatus.items[3].value]: StoreStatus.items[3].label,
 }
 
 const statusDescMap: Record<number, string> = {
-  [StoreStatus[0].code]: "暂时关闭，不接新单",
-  [StoreStatus[1].code]: "门店正常营业，可接单",
-  [StoreStatus[2].code]: "门店尚未开业",
-  [StoreStatus[3].code]: "门店已永久关闭",
+  [StoreStatus.items[0].value]: "暂时关闭，不接新单",
+  [StoreStatus.items[1].value]: "门店正常营业，可接单",
+  [StoreStatus.items[2].value]: "门店尚未开业",
+  [StoreStatus.items[3].value]: "门店已永久关闭",
 }
 
 export default function StoreSettingsPage() {

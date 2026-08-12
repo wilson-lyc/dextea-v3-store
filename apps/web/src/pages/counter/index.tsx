@@ -6,43 +6,51 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   activeOrders,
+  getOrderStatus,
   storeName,
   type Order,
-  type OrderStatus,
 } from "./data"
 import { OrderCard } from "./components/OrderCard"
 import { OrderDetail, OrderDetailEmpty } from "./components/OrderDetail"
 
-const statusTabs: { key: OrderStatus | "all"; label: string }[] = [
+const VISIBLE_MAKING_STATUS = [1, 2]
+
+const statusTabs: { key: number | "all"; label: string }[] = [
   { key: "all", label: "全部" },
-  { key: "待制作", label: "待制作" },
-  { key: "制作中", label: "制作中" },
-  { key: "待取餐", label: "待取餐" },
-  { key: "已完成", label: "已完成" },
+  { key: 1, label: "制作中" },
+  { key: 2, label: "待取餐" },
 ]
 
 export default function CounterPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<OrderStatus | "all">("all")
-  const [selectedId, setSelectedId] = useState<string | null>(
-    activeOrders[0]?.id ?? null
+  const [tab, setTab] = useState<number | "all">("all")
+  const [selectedId, setSelectedId] = useState<string | null>("o15")
+
+  const visibleOrders = useMemo(
+    () =>
+      activeOrders.filter(
+        (order) =>
+          order.paymentStatus === 2 &&
+          VISIBLE_MAKING_STATUS.includes(order.makingStatus)
+      ),
+    []
   )
 
   const orders = useMemo<Order[]>(
     () =>
       tab === "all"
-        ? activeOrders
-        : activeOrders.filter((order) => order.status === tab),
-    [tab]
+        ? visibleOrders
+        : visibleOrders.filter((order) => order.makingStatus === tab),
+    [tab, visibleOrders]
   )
 
   const counts = useMemo(() => {
-    const map: Record<string, number> = { all: activeOrders.length }
-    for (const order of activeOrders) {
-      map[order.status] = (map[order.status] ?? 0) + 1
+    const map: Record<string, number> = { all: visibleOrders.length }
+    for (const order of visibleOrders) {
+      map[order.makingStatus] = (map[order.makingStatus] ?? 0) + 1
     }
     return map
-  }, [])
+  }, [visibleOrders])
 
   const selected = orders.find((order) => order.id === selectedId) ?? null
 
@@ -109,17 +117,18 @@ export default function CounterPage() {
                   />
                 ))
               )}
+              <p className="px-3 py-2.5 text-center text-xs text-muted-foreground">
+                仅展示最近 3 小时内订单，查看更多数据请点击
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="ml-0.5 font-medium text-primary transition hover:text-primary/80"
+                >
+                  此处
+                </a>
+              </p>
             </div>
           </ScrollArea>
-
-          <a
-            href="#"
-            onClick={(e) => e.preventDefault()}
-            className="shrink-0 border-t bg-background px-3 py-2.5 text-center text-xs text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
-          >
-            仅展示最近 3 小时内订单，查看更多数据请点击
-            <span className="font-medium text-primary">此处</span>
-          </a>
         </section>
 
         <section className="flex min-h-0 flex-col overflow-hidden">

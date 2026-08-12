@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Clock } from "lucide-react"
 
-import { type Order } from "../data"
+import { getOrderStatus, type Order } from "../data"
 import { OrderStatusBadge } from "./OrderStatusBadge"
 
 interface OrderCardProps {
@@ -45,7 +45,7 @@ export function OrderCard({ order, selected, onSelect }: OrderCardProps) {
             {order.type}
           </span>
         </div>
-        <OrderStatusBadge status={order.status} />
+        <OrderStatusBadge status={getOrderStatus(order)} />
       </div>
 
       <div className="flex items-center justify-between text-xs">
