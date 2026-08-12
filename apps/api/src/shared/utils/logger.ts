@@ -1,7 +1,9 @@
+import { config } from '@/config.js'
+
 export type LogLevel = 'off' | 'simple' | 'detail'
 
 const DEFAULT_LEVEL: LogLevel =
-  process.env.NODE_ENV === 'production' ? 'simple' : 'detail'
+  config.nodeEnv === 'production' ? 'simple' : 'detail'
 
 function normalize(raw: string | undefined): LogLevel {
   const v = raw?.trim().toLowerCase()
@@ -25,7 +27,7 @@ function normalize(raw: string | undefined): LogLevel {
   }
 }
 
-export const logLevel: LogLevel = normalize(process.env.LOG_LEVEL)
+export const logLevel: LogLevel = normalize(config.logLevel)
 
 function timestamp(): string {
   return new Date().toISOString()

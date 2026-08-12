@@ -1,8 +1,8 @@
 import { drizzle } from 'drizzle-orm/mysql2'
 import mysql from 'mysql2/promise'
-import { config } from '@/shared/config.js'
+import { config } from '@/config.js'
 
-const { host, port, database, user, password } = config.database
+const { host, port, name: database, user, password } = config.db
 
 const pool = mysql.createPool({
   host,

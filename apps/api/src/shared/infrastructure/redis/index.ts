@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis'
-import { config } from '@/shared/config.js'
+import { config } from '@/config.js'
 import { logger } from '@/shared/utils/logger.js'
 
 const { host, port, password, db } = config.redis

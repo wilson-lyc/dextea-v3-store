@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { config } from '@/shared/config.js'
+import { config } from '@/config.js'
 import { BizError } from '@/shared/errors/biz-error.js'
 import { StoreErrorCode } from '@/error/store-error.js'
 import type {
