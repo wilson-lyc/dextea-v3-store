@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Check, Coffee, Loader2, Package, Store } from "lucide-react"
+import { ArrowLeft, Coffee } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -10,6 +10,8 @@ import {
   type Order,
   type OrderStatus,
 } from "./data"
+import { OrderCard } from "./components/OrderCard"
+import { OrderDetail, OrderDetailEmpty } from "./components/OrderDetail"
 
 const statusTabs: { key: OrderStatus | "all"; label: string }[] = [
   { key: "all", label: "全部" },
@@ -18,13 +20,6 @@ const statusTabs: { key: OrderStatus | "all"; label: string }[] = [
   { key: "待取餐", label: "待取餐" },
   { key: "已完成", label: "已完成" },
 ]
-
-const statusStyles: Record<OrderStatus, string> = {
-  待制作: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
-  制作中: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
-  待取餐: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
-  已完成: "bg-muted text-muted-foreground",
-}
 
 export default function CounterPage() {
   const navigate = useNavigate()
@@ -106,39 +101,12 @@ export default function CounterPage() {
                 </div>
               ) : (
                 orders.map((order) => (
-                  <button
+                  <OrderCard
                     key={order.id}
-                    type="button"
-                    onClick={() => setSelectedId(order.id)}
-                    className={`flex w-full flex-col gap-1 rounded-xl border bg-background p-3 text-left transition hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      selectedId === order.id
-                        ? "border-primary ring-1 ring-primary"
-                        : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{order.code}</span>
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                          {order.type}
-                        </span>
-                      </div>
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${statusStyles[order.status]}`}
-                      >
-                        {order.status}
-                      </span>
-                    </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {order.items.map((i) => `${i.name}×${i.quantity}`).join("，")}
-                    </p>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        {order.customer} · {order.createdAt}
-                      </span>
-                      <span className="font-semibold">¥{order.total}</span>
-                    </div>
-                  </button>
+                    order={order}
+                    selected={selectedId === order.id}
+                    onSelect={setSelectedId}
+                  />
                 ))
               )}
             </div>
@@ -147,100 +115,9 @@ export default function CounterPage() {
 
         <section className="flex min-h-0 flex-col overflow-hidden">
           {selected ? (
-            <>
-              <ScrollArea className="min-h-0 flex-1">
-                <div className="p-6">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold">{selected.code}</h2>
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                      {selected.type}
-                    </span>
-                  </div>
-                  <span
-                    className={`rounded px-2 py-1 text-xs font-medium ${statusStyles[selected.status]}`}
-                  >
-                    {selected.status}
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Store className="size-3.5" />
-                    {selected.customer}
-                  </span>
-                  <span>{selected.createdAt}</span>
-                </div>
-
-                <div className="mt-5 space-y-2">
-                  {selected.items.map((line) => (
-                    <div
-                      key={line.id}
-                      className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{line.name}</p>
-                        {line.note && (
-                          <p className="text-xs text-muted-foreground">
-                            备注：{line.note}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-muted-foreground">
-                          ¥{line.price} ×{line.quantity}
-                        </span>
-                        <span className="font-semibold">
-                          ¥{line.price * line.quantity}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-5 flex items-center justify-between border-t pt-4">
-                  <span className="text-sm text-muted-foreground">合计</span>
-                  <span className="text-2xl font-semibold">
-                    ¥{selected.total}
-                  </span>
-                </div>
-              </div>
-              </ScrollArea>
-
-              <div className="flex shrink-0 items-center gap-3 border-t bg-background p-4">
-                <Button variant="outline" className="flex-1" disabled>
-                  <Package />
-                  打印小票
-                </Button>
-                {selected.status === "待制作" && (
-                  <Button className="flex-1">
-                    <Loader2 />
-                    开始制作
-                  </Button>
-                )}
-                {selected.status === "制作中" && (
-                  <Button className="flex-1">
-                    <Check />
-                    完成制作
-                  </Button>
-                )}
-                {selected.status === "待取餐" && (
-                  <Button className="flex-1">
-                    <Check />
-                    确认取餐
-                  </Button>
-                )}
-                {(selected.status === "已完成") && (
-                  <Button className="flex-1" disabled>
-                    已完成
-                  </Button>
-                )}
-                </div>
-            </>
+            <OrderDetail order={selected} />
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-              <Coffee className="size-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">请选择左侧订单查看详情</p>
-            </div>
+            <OrderDetailEmpty text="请选择左侧订单查看详情" />
           )}
         </section>
       </div>
