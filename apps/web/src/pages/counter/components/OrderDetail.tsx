@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Check, Coffee, Loader2, Package, Store } from "lucide-react"
+import { Check, Coffee, Loader2, Store } from "lucide-react"
 
 import { type Order } from "../data"
 import { OrderStatusBadge } from "./OrderStatusBadge"
@@ -63,10 +63,6 @@ export function OrderDetail({ order }: OrderDetailProps) {
       </ScrollArea>
 
       <div className="flex shrink-0 items-center gap-3 border-t bg-background p-4">
-        <Button variant="outline" className="flex-1" disabled>
-          <Package />
-          打印小票
-        </Button>
         {order.status === "待制作" && (
           <Button className="flex-1">
             <Loader2 />
