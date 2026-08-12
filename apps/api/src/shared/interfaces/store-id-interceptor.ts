@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { TokenService } from '@/service/token-service.js'
+import type { AuthService } from '@/service/auth-service.js'
 
 const BEARER_PREFIX = 'Bearer '
 
-export function createStoreIdInterceptor(tokenProvider: TokenService) {
+export function createStoreIdInterceptor(tokenProvider: AuthService) {
   return async function storeIdInterceptor(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     const authHeader = request.headers['authorization']
     if (!authHeader || typeof authHeader !== 'string') {

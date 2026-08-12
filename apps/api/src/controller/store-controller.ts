@@ -8,22 +8,20 @@ import {
   type UpdateStoreStatusRequest,
 } from '@dextea/constraints'
 import { success } from '@/shared/types/api-response.js'
-import { loginService } from '@/service/login-service.js'
-import { getStoreService } from '@/service/get-store-service.js'
-import { updateStoreStatusService } from '@/service/update-store-status-service.js'
-import { resetPasswordService } from '@/service/reset-password-service.js'
+import { authService } from '@/service/auth-service.js'
+import { storeService } from '@/service/store-service.js'
 
 export async function loginController(
   request: FastifyRequest<{ Body: LoginRequest }>,
   reply: FastifyReply,
 ): Promise<void> {
-  const result = await loginService.execute(request.body as LoginRequest)
+  const result = await authService.login(request.body as LoginRequest)
   return reply.send(success(result))
 }
 
 export async function getStoreController(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const storeId = Number(request.headers['x-store-id'])
-  const result = await getStoreService.execute(storeId)
+  const result = await storeService.getById(storeId)
   return reply.send(success(result))
 }
 
@@ -32,7 +30,7 @@ export async function updateStoreStatusController(
   reply: FastifyReply,
 ): Promise<void> {
   const storeId = Number(request.headers['x-store-id'])
-  await updateStoreStatusService.execute(storeId, request.body.status)
+  await storeService.updateStatus(storeId, request.body)
   return reply.send(success(null))
 }
 
@@ -41,7 +39,7 @@ export async function resetPasswordController(
   reply: FastifyReply,
 ): Promise<void> {
   const storeId = Number(request.headers['x-store-id'])
-  await resetPasswordService.execute(storeId, request.body as ResetPasswordRequest)
+  await storeService.resetPassword(storeId, request.body as ResetPasswordRequest)
   return reply.send(success(null))
 }
 

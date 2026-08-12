@@ -262,3 +262,10 @@ export const productGlobalStatusCode = codeMap([
 ])
 
 export type ProductGlobalStatusCode = (typeof productGlobalStatusCode)[keyof typeof productGlobalStatusCode]
+
+export const productStoreStatusCode = codeMap([
+  { key: 'STORE_DISABLED', value: 0, label: '禁用', color: { text: '', background: '', border: '' } },
+  { key: 'STORE_ACTIVE', value: 1, label: '可售', color: { text: '', background: '', border: '' } },
+])
+
+export type ProductStoreStatusCode = (typeof productStoreStatusCode)[keyof typeof productStoreStatusCode]

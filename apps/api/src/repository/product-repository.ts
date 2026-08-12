@@ -1,8 +1,9 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/shared/database/index.js'
-import { products } from '@/shared/database/schema.js'
+import { products, productStoreStatus } from '@/shared/database/schema.js'
 import { Product } from '@/model/product.js'
 import type { ProductGlobalStatusCode } from '@dextea/constraints'
+import { productStoreStatusCode } from '@dextea/constraints'
 
 export class ProductRepository {
   async findGloballyActive(): Promise<Product[]> {
@@ -13,6 +14,47 @@ export class ProductRepository {
       .orderBy(products.id)
 
     return rows.map((row) => this.toModel(row))
+  }
+
+  async findStoreStatusByStoreId(storeId: number, productIds: number[]): Promise<Map<number, number>> {
+    const result = new Map<number, number>()
+    for (const productId of productIds) {
+      result.set(productId, productStoreStatusCode.STORE_DISABLED)
+    }
+
+    if (productIds.length === 0) {
+      return result
+    }
+
+    const rows = await db
+      .select()
+      .from(productStoreStatus)
+      .where(and(eq(productStoreStatus.storeId, storeId), inArray(productStoreStatus.productId, productIds)))
+
+    for (const row of rows) {
+      result.set(Number(row.productId), Number(row.status))
+    }
+
+    return result
+  }
+
+  async setStoreStatus(storeId: number, productId: number, status: number): Promise<void> {
+    await db
+      .insert(productStoreStatus)
+      .values({ storeId, productId, status })
+      .onDuplicateKeyUpdate({ set: { status } })
+  }
+
+  async batchSetStoreStatus(
+    storeId: number,
+    productIds: number[],
+    status: number,
+  ): Promise<void> {
+    if (productIds.length === 0) return
+    await db
+      .insert(productStoreStatus)
+      .values(productIds.map((productId) => ({ storeId, productId, status })))
+      .onDuplicateKeyUpdate({ set: { status } })
   }
 
   private toModel(row: typeof products.$inferSelect): Product {

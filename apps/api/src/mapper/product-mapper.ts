@@ -1,4 +1,4 @@
-import type { ProductGlobalStatusCode } from '@dextea/constraints'
+import type { ProductGlobalStatusCode, ProductStoreStatusCode } from '@dextea/constraints'
 import type { Product } from '@/model/product.js'
 
 export interface ProductView {
@@ -8,11 +8,12 @@ export interface ProductView {
   price: number
   image: string | null
   status: ProductGlobalStatusCode
+  storeStatus: ProductStoreStatusCode
   createdAt: string
   updatedAt: string
 }
 
-export function toProductView(product: Product): ProductView {
+export function toProductView(product: Product, storeStatus: ProductStoreStatusCode): ProductView {
   return {
     id: product.id,
     name: product.name,
@@ -20,6 +21,7 @@ export function toProductView(product: Product): ProductView {
     price: product.price,
     image: product.image,
     status: product.status,
+    storeStatus,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   }

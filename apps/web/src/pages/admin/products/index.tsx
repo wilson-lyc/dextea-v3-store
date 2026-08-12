@@ -1,100 +1,365 @@
 import { useEffect, useState } from "react"
-import { Package, RefreshCwIcon } from "lucide-react"
+import { ListChecksIcon, Package, RefreshCwIcon, XIcon } from "lucide-react"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { ProductStoreStatus } from "@dextea/constraints"
 import { productApi, type ProductView } from "@/lib/api/product"
+import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api/request"
 import { logger } from "@/lib/logger"
 import { toast } from "@/lib/toast"
 
+const STORE_ACTIVE = ProductStoreStatus.getValueByKey("ACTIVE")
+const STORE_DISABLED = ProductStoreStatus.getValueByKey("DISABLED")
+
+type StoreFilter = "ALL" | "ACTIVE" | "DISABLED"
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductView[]>([])
   const [loading, setLoading] = useState(true)
+  const [pending, setPending] = useState<ProductView | null>(null)
+  const [toggling, setToggling] = useState(false)
+  const [filter, setFilter] = useState<StoreFilter>("ALL")
+  const [refreshing, setRefreshing] = useState(false)
+  const [batchMode, setBatchMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [batchTarget, setBatchTarget] = useState<number | null>(null)
+  const [batchSubmitting, setBatchSubmitting] = useState(false)
+
+  const activeCount = products.filter((p) => p.storeStatus === STORE_ACTIVE).length
+  const disabledCount = products.filter((p) => p.storeStatus === STORE_DISABLED).length
+
+  const filteredProducts = products.filter((product) => {
+    if (filter === "ACTIVE") return product.storeStatus === STORE_ACTIVE
+    if (filter === "DISABLED") return product.storeStatus === STORE_DISABLED
+    return true
+  })
+
+  async function loadProducts() {
+    try {
+      const data = await productApi.listActive()
+      setProducts(data)
+    } catch (err) {
+      logger.error("获取商品列表失败", err)
+      toast.error(err instanceof ApiError ? err.message : "获取商品列表失败")
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false
     setLoading(true)
-    productApi
-      .listActive()
-      .then((data) => {
-        if (cancelled) return
-        setProducts(data)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        logger.error("获取商品列表失败", err)
-        toast.error(err instanceof ApiError ? err.message : "获取商品列表失败")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
+    loadProducts().finally(() => setLoading(false))
   }, [])
 
+  async function handleRefresh() {
+    setRefreshing(true)
+    await loadProducts()
+    setRefreshing(false)
+  }
+
+  async function confirmToggle() {
+    if (!pending) return
+    setToggling(true)
+    try {
+      const { storeStatus } = await productApi.toggleStoreStatus(pending.id)
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === pending.id ? { ...item, storeStatus } : item,
+        ),
+      )
+      setPending(null)
+    } catch (err) {
+      logger.error("切换商品门店状态失败", err)
+      toast.error(err instanceof ApiError ? err.message : "切换商品门店状态失败")
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    )
+  }
+
+  function exitBatchMode() {
+    setBatchMode(false)
+    setSelectedIds([])
+  }
+
+  async function confirmBatch() {
+    if (batchTarget === null || selectedIds.length === 0) return
+    setBatchSubmitting(true)
+    try {
+      await productApi.batchSetStoreStatus(selectedIds, batchTarget)
+      setProducts((prev) =>
+        prev.map((item) =>
+          selectedIds.includes(item.id) ? { ...item, storeStatus: batchTarget } : item,
+        ),
+      )
+      setBatchTarget(null)
+      exitBatchMode()
+    } catch (err) {
+      logger.error("批量切换门店状态失败", err)
+      toast.error(err instanceof ApiError ? err.message : "批量切换门店状态失败")
+    } finally {
+      setBatchSubmitting(false)
+    }
+  }
+
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>商品列表</CardTitle>
-          <CardDescription>全局上架的商品</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <p className="text-sm text-muted-foreground">加载中...</p>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 py-16 text-center">
-              <div className="flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                <Package className="size-8" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">暂无上架商品</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  全局上架的商品将显示在这里
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex flex-col gap-3 rounded-xl border border-border p-4 transition hover:border-ring hover:shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold leading-snug">
-                      {product.name}
-                    </h3>
-                    <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                      上架
-                    </span>
-                  </div>
-                  {product.description && (
-                    <p className="line-clamp-2 text-xs text-muted-foreground">
-                      {product.description}
-                    </p>
+    <div className="flex h-full flex-col">
+      <div className="flex shrink-0 items-center gap-2 border-b px-6 py-3">
+        {batchMode ? (
+          <>
+            <Button variant="ghost" size="sm" onClick={exitBatchMode}>
+              <XIcon className="size-4" />
+              取消
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              已选 {selectedIds.length} 项
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              disabled={selectedIds.length === 0 || batchSubmitting}
+              onClick={() => setBatchTarget(STORE_DISABLED)}
+            >
+              批量下架
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selectedIds.length === 0 || batchSubmitting}
+              onClick={() => setBatchTarget(STORE_ACTIVE)}
+            >
+              批量上架
+            </Button>
+          </>
+        ) : (
+          <>
+            {(
+              [
+                { key: "ALL", label: "全部", count: products.length },
+                { key: "ACTIVE", label: "可售", count: activeCount },
+                { key: "DISABLED", label: "售罄", count: disabledCount },
+              ] as { key: StoreFilter; label: string; count: number }[]
+            ).map((item) => (
+              <Button
+                key={item.key}
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilter(item.key)}
+                className={cn(
+                  filter === item.key
+                    ? "bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary"
+                    : "text-muted-foreground",
+                )}
+              >
+                {item.label}
+                <span className="text-xs tabular-nums">{item.count}</span>
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              disabled={refreshing || loading}
+              onClick={() => setBatchMode(true)}
+            >
+              <ListChecksIcon className="size-4" />
+              批量操作
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={refreshing || loading}
+              onClick={handleRefresh}
+            >
+              <RefreshCwIcon className={cn("size-4", refreshing && "animate-spin")} />
+              刷新
+            </Button>
+          </>
+        )}
+      </div>
+
+      <ScrollArea className="flex-1 px-6 py-3">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-sm text-muted-foreground">加载中...</p>
+          </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <Package className="size-8" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">
+              {products.length === 0 ? "暂无上架商品" : "无符合条件的商品"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {products.length === 0
+                ? "全局上架的商品将显示在这里"
+                : "请调整筛选条件后重试"}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredProducts.map((product) => (
+            <div
+              key={product.id}
+              className={cn(
+                "flex flex-col gap-3 rounded-xl border border-border p-4 transition hover:border-ring hover:shadow-sm",
+                batchMode && selectedIds.includes(product.id) && "border-primary",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2">
+                  {batchMode && (
+                    <Checkbox
+                      checked={selectedIds.includes(product.id)}
+                      onCheckedChange={() => toggleSelect(product.id)}
+                      className="mt-0.5"
+                    />
                   )}
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-base font-semibold">
-                      ¥{product.price.toFixed(2)}
-                    </span>
-                  </div>
+                  <h3 className="text-sm font-semibold leading-snug">
+                    {product.name}
+                  </h3>
                 </div>
-              ))}
+                {(() => {
+                  const color = ProductStoreStatus.getColor(product.storeStatus)
+                  return (
+                    <span
+                      className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium"
+                      style={{
+                        color: color?.text,
+                        backgroundColor: color?.background,
+                        border: color ? `1px solid ${color.border}` : undefined,
+                      }}
+                    >
+                      {ProductStoreStatus.getLabel(product.storeStatus)}
+                    </span>
+                  )
+                })()}
+              </div>
+              {product.description && (
+                <p className="line-clamp-2 text-xs text-muted-foreground">
+                  {product.description}
+                </p>
+              )}
+              <div className="mt-auto flex items-center justify-between">
+                <span className="text-base font-semibold">
+                  ¥{product.price.toFixed(2)}
+                </span>
+                {!batchMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={toggling}
+                    onClick={() => setPending(product)}
+                  >
+                    {product.storeStatus === ProductStoreStatus.getValueByKey("ACTIVE")
+                      ? "设为售罄"
+                      : "设为可售"}
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
+      </ScrollArea>
+
+      <AlertDialog
+        open={pending !== null}
+        onOpenChange={(open) => {
+          if (!open) setPending(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认切换门店状态</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pending !== null && (
+                <>
+                  确定要将「{pending.name}」的门店状态切换为
+                  <span className="font-medium text-foreground">
+                    {" "}
+                    {pending.storeStatus === ProductStoreStatus.getValueByKey("ACTIVE")
+                      ? ProductStoreStatus.getLabel(
+                          ProductStoreStatus.getValueByKey("DISABLED"),
+                        )
+                      : ProductStoreStatus.getLabel(
+                          ProductStoreStatus.getValueByKey("ACTIVE"),
+                        )}{" "}
+                  </span>
+                  吗？
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="default"
+              disabled={toggling}
+              onClick={confirmToggle}
+            >
+              {toggling ? "处理中..." : "确认切换"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={batchTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setBatchTarget(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认批量切换门店状态</AlertDialogTitle>
+            <AlertDialogDescription>
+              {batchTarget !== null && (
+                <>
+                  确定要将选中的 {selectedIds.length} 个商品批量切换为
+                  <span className="font-medium text-foreground">
+                    {" "}
+                    {ProductStoreStatus.getLabel(batchTarget)}{" "}
+                  </span>
+                  吗？
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="default"
+              disabled={batchSubmitting}
+              onClick={confirmBatch}
+            >
+              {batchSubmitting ? "处理中..." : "确认切换"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
 import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
 import { logger } from '@/shared/utils/logger.js'
 import { config } from '@/config.js'
-import { jwtService } from '@/service/jwt-service.js'
+import { authService } from '@/service/auth-service.js'
 import { registerLoginRoutes, registerStoreRoutes } from '@/controller/store-controller.js'
 import { registerProductRoutes } from '@/controller/product-controller.js'
 
@@ -26,7 +26,7 @@ await app.register(cors, {
   origin: corsOrigin,
   credentials: config.corsCredentials,
 })
-app.addHook('onRequest', createStoreIdInterceptor(jwtService))
+app.addHook('onRequest', createStoreIdInterceptor(authService))
 await app.register(registerLoginRoutes, { prefix: '/api/v1/auth' })
 await app.register(registerStoreRoutes, { prefix: '/api/v1/store' })
 await app.register(registerProductRoutes, { prefix: '/api/v1/products' })

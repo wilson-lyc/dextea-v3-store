@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react"
 import { TriangleAlertIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Card,
   CardContent,
@@ -131,7 +132,7 @@ export default function StoreSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex h-full items-center justify-center py-20">
         <p className="text-sm text-muted-foreground">加载中...</p>
       </div>
     )
@@ -139,7 +140,7 @@ export default function StoreSettingsPage() {
 
   if (!store) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex h-full items-center justify-center py-20">
         <p className="text-sm text-muted-foreground">无法获取门店信息</p>
       </div>
     )
@@ -149,7 +150,9 @@ export default function StoreSettingsPage() {
   const currentDesc = statusDescMap[store.status] ?? ""
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <>
+      <ScrollArea className="h-full">
+        <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <Card>
         <CardHeader>
           <CardTitle>门店信息</CardTitle>
@@ -283,11 +286,13 @@ export default function StoreSettingsPage() {
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={resettingPassword}>
-              {resettingPassword ? "提交中..." : "确认重置"}
+              {resettingPassword ? "处理中..." : "确认重置"}
             </Button>
           </CardFooter>
         </form>
       </Card>
+      </div>
+      </ScrollArea>
 
       <AlertDialog
         open={pendingStatus !== null}
@@ -318,11 +323,11 @@ export default function StoreSettingsPage() {
               disabled={updatingStatus}
               onClick={confirmUpdateStatus}
             >
-              {updatingStatus ? "提交中..." : "确认切换"}
+              {updatingStatus ? "处理中..." : "确认切换"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   )
 }

@@ -2,7 +2,6 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { ArrowLeft, Package, Settings } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -34,38 +33,31 @@ export function AdminLayout() {
           <ArrowLeft />
         </Button>
         <h1 className="text-lg font-semibold tracking-tight">后台设置</h1>
+
+        <nav className="ml-auto flex items-center gap-1">
+          {navItems.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )
+              }
+            >
+              <Icon className="size-4" />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <nav className="w-56 shrink-0 border-r p-3">
-          <ul className="flex flex-col gap-1">
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )
-                  }
-                >
-                  <Icon className="size-4" />
-                  {label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <main className="min-w-0 flex-1 p-6">
-          <ScrollArea className="h-full">
-            <div className="p-[3px]">
-              <Outlet />
-            </div>
-          </ScrollArea>
+        <main className="min-w-0 flex-1">
+          <Outlet />
         </main>
       </div>
     </div>
