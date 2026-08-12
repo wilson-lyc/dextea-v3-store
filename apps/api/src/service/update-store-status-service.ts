@@ -1,7 +1,7 @@
 import { BizError } from '@/shared/errors/biz-error.js'
 import { logger } from '@/shared/utils/logger.js'
-import { StoreErrorCode } from '@/store/error.js'
-import { storeRepository } from '@/store/repository/store-repository.js'
+import { StoreErrorCode } from '@/error/store-error.js'
+import { storeRepository } from '@/repository/store-repository.js'
 import { redisDistributedLock } from '@/shared/infrastructure/redis/redis-distributed-lock-adapter.js'
 import { storeStatusCode, type StoreStatusCode } from '@dextea/constraints'
 

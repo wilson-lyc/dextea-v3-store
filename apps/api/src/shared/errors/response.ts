@@ -1,5 +1,13 @@
-import { SUCCESS_CODE, SUCCESS_MESSAGE, type ApiResponse } from '../types/api-response.js'
 import { BizError } from './biz-error.js'
+
+export const SUCCESS_CODE = 0
+export const SUCCESS_MESSAGE = 'success'
+
+export interface ApiResponse<T = unknown> {
+  code: number
+  message: string
+  data: T
+}
 
 export function success<T>(data: T): ApiResponse<T> {
   return {

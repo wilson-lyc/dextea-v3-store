@@ -1,7 +1,7 @@
 import { BizError } from '@/shared/errors/biz-error.js'
-import { StoreErrorCode } from '@/store/error.js'
-import { toStoreView, type StoreView } from '@/store/mapper/store-mapper.js'
-import { storeRepository } from '@/store/repository/store-repository.js'
+import { StoreErrorCode } from '@/error/store-error.js'
+import { toStoreView, type StoreView } from '@/mapper/store-mapper.js'
+import { storeRepository } from '@/repository/store-repository.js'
 
 export class GetStoreService {
   async execute(id: number): Promise<StoreView> {

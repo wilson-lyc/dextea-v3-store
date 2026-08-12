@@ -1,5 +1,5 @@
-import { toProductView, type ProductView } from '@/product/mapper/product-mapper.js'
-import { productRepository } from '@/product/repository/product-repository.js'
+import { toProductView, type ProductView } from '@/mapper/product-mapper.js'
+import { productRepository } from '@/repository/product-repository.js'
 
 export class ListActiveProductsService {
   async execute(): Promise<ProductView[]> {

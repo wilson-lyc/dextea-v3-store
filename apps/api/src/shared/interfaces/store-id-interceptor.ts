@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { TokenService } from '@/store/service/token-service.js'
+import type { TokenService } from '@/service/token-service.js'
 
 const BEARER_PREFIX = 'Bearer '
 

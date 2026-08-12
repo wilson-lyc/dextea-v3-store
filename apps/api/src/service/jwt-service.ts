@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken'
 import { config } from '@/shared/config.js'
 import { BizError } from '@/shared/errors/biz-error.js'
-import { StoreErrorCode } from '@/store/error.js'
+import { StoreErrorCode } from '@/error/store-error.js'
 import type {
   JwtUserClaims,
   TokenService,
   VerifiedToken,
-} from '@/store/service/token-service.js'
+} from '@/service/token-service.js'
 
 export class JwtService implements TokenService {
   private readonly secret: string

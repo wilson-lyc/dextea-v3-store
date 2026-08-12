@@ -6,9 +6,9 @@ import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-
 import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
 import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
 import { logger } from '@/shared/utils/logger.js'
-import { jwtService } from '@/store/service/jwt-service.js'
-import { registerLoginRoutes, registerStoreRoutes } from '@/store/controller/store-controller.js'
-import { registerProductRoutes } from '@/product/controller/product-controller.js'
+import { jwtService } from '@/service/jwt-service.js'
+import { registerLoginRoutes, registerStoreRoutes } from '@/controller/store-controller.js'
+import { registerProductRoutes } from '@/controller/product-controller.js'
 
 const app = Fastify({
   logger: true,

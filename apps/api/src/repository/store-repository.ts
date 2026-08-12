@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/shared/infrastructure/database/index.js'
 import { stores } from '@/drizzle/schema.js'
-import { Store } from '@/store/model/store.js'
+import { Store } from '@/model/store.js'
 import type { StoreStatusCode } from '@dextea/constraints'
 
 export class StoreRepository {

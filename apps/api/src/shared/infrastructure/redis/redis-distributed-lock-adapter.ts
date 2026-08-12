@@ -1,11 +1,19 @@
 import { tryAcquireLock } from '@/shared/infrastructure/redis/distributed-lock.js'
-import type {
-  AcquireLockOptions,
-  DistributedLockPort,
-  LockHandle,
-} from '@/shared/domain/ports/distributed-lock-port.js'
 
-export class RedisDistributedLock implements DistributedLockPort {
+export interface AcquireLockOptions {
+  ttlMs: number
+  renewIntervalMs?: number
+}
+
+export interface LockHandle {
+  release(): Promise<void>
+}
+
+export interface DistributedLock {
+  tryAcquire(key: string, options?: AcquireLockOptions): Promise<LockHandle | null>
+}
+
+export class RedisDistributedLock implements DistributedLock {
   async tryAcquire(
     key: string,
     options: AcquireLockOptions = { ttlMs: 30_000 },
