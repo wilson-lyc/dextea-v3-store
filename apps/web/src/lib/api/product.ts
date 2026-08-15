@@ -12,6 +12,29 @@ export interface ProductView {
   updatedAt: string
 }
 
+export interface CustomizationOptionView {
+  id: number
+  itemId: number
+  name: string
+  price: number
+  sort: number
+  status: number
+  storeStatus: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CustomizationItemView {
+  id: number
+  productId: number
+  name: string
+  sort: number
+  status: number
+  options: CustomizationOptionView[]
+  createdAt: string
+  updatedAt: string
+}
+
 export const productApi = {
   listActive(): Promise<ProductView[]> {
     return http.get<ProductView[]>("/api/v1/products/")
@@ -21,5 +44,8 @@ export const productApi = {
   },
   batchSetStoreStatus(productIds: number[], status: number): Promise<null> {
     return http.post<null>("/api/v1/products/batch/store-status", { productIds, status })
+  },
+  listCustomizations(productId: number): Promise<CustomizationItemView[]> {
+    return http.get<CustomizationItemView[]>(`/api/v1/products/${productId}/customizations`)
   },
 }

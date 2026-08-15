@@ -4,6 +4,7 @@ import { ListChecksIcon, Package, RefreshCwIcon, XIcon } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +22,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ProductStoreStatus } from "@dextea/constraints"
-import { productApi, type ProductView } from "@/lib/api/product"
+import {
+  ProductStoreStatus,
+  customizationOptionStoreStatusCode,
+} from "@dextea/constraints"
+import {
+  productApi,
+  type CustomizationItemView,
+  type ProductView,
+} from "@/lib/api/product"
 import { cn } from "@/lib/utils"
 import { ApiError } from "@/lib/api/request"
 import { logger } from "@/lib/logger"
@@ -30,6 +38,9 @@ import { toast } from "@/lib/toast"
 
 const STORE_ACTIVE = ProductStoreStatus.getValueByKey("ACTIVE")
 const STORE_DISABLED = ProductStoreStatus.getValueByKey("DISABLED")
+
+const OPTION_STORE_ACTIVE = customizationOptionStoreStatusCode.STORE_ACTIVE
+const OPTION_STORE_DISABLED = customizationOptionStoreStatusCode.STORE_DISABLED
 
 type StoreFilter = "ALL" | "ACTIVE" | "DISABLED"
 
@@ -45,6 +56,8 @@ export default function ProductsPage() {
   const [batchTarget, setBatchTarget] = useState<number | null>(null)
   const [batchSubmitting, setBatchSubmitting] = useState(false)
   const [customizeTarget, setCustomizeTarget] = useState<ProductView | null>(null)
+  const [customizationItems, setCustomizationItems] = useState<CustomizationItemView[]>([])
+  const [customizationsLoading, setCustomizationsLoading] = useState(false)
 
   const activeCount = products.filter((p) => p.storeStatus === STORE_ACTIVE).length
   const disabledCount = products.filter((p) => p.storeStatus === STORE_DISABLED).length
@@ -69,6 +82,28 @@ export default function ProductsPage() {
     setLoading(true)
     loadProducts().finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (customizeTarget === null) return
+    let cancelled = false
+    setCustomizationsLoading(true)
+    productApi
+      .listCustomizations(customizeTarget.id)
+      .then((data) => {
+        if (!cancelled) setCustomizationItems(data)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        logger.error("获取客制化列表失败", err)
+        toast.error(err instanceof ApiError ? err.message : "获取客制化列表失败")
+      })
+      .finally(() => {
+        if (!cancelled) setCustomizationsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [customizeTarget])
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -98,6 +133,29 @@ export default function ProductsPage() {
   function toggleSelect(id: number) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    )
+  }
+
+  function toggleOption(itemId: number, optionId: number) {
+    setCustomizationItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              options: item.options.map((option) =>
+                option.id === optionId
+                  ? {
+                      ...option,
+                      storeStatus:
+                        option.storeStatus === OPTION_STORE_ACTIVE
+                          ? OPTION_STORE_DISABLED
+                          : OPTION_STORE_ACTIVE,
+                    }
+                  : option,
+              ),
+            }
+          : item,
+      ),
     )
   }
 
@@ -387,14 +445,53 @@ export default function ProductsPage() {
           if (!open) setCustomizeTarget(null)
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>管理客制化</DialogTitle>
             <DialogDescription>
               {customizeTarget !== null && `「${customizeTarget.name}」的客制化选项`}
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-40" />
+          <ScrollArea className="max-h-[60vh]">
+            {customizationsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <p className="text-sm text-muted-foreground">加载中...</p>
+              </div>
+            ) : customizationItems.length === 0 ? (
+              <div className="flex items-center justify-center py-16">
+                <p className="text-sm text-muted-foreground">该商品暂无客制化项目</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6 pr-2">
+                {customizationItems.map((item) => (
+                  <section key={item.id}>
+                    <h4 className="mb-2 text-sm font-semibold">{item.name}</h4>
+                    <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+                      {item.options.map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex items-center justify-between gap-3 px-3 py-2.5"
+                        >
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm">{option.name}</span>
+                            {option.price > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                +¥{option.price.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <Switch
+                            checked={option.storeStatus === OPTION_STORE_ACTIVE}
+                            onCheckedChange={() => toggleOption(item.id, option.id)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
