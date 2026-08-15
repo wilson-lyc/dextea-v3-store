@@ -14,6 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ProductStoreStatus } from "@dextea/constraints"
 import { productApi, type ProductView } from "@/lib/api/product"
 import { cn } from "@/lib/utils"
@@ -37,6 +44,7 @@ export default function ProductsPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [batchTarget, setBatchTarget] = useState<number | null>(null)
   const [batchSubmitting, setBatchSubmitting] = useState(false)
+  const [customizeTarget, setCustomizeTarget] = useState<ProductView | null>(null)
 
   const activeCount = products.filter((p) => p.storeStatus === STORE_ACTIVE).length
   const disabledCount = products.filter((p) => p.storeStatus === STORE_DISABLED).length
@@ -262,21 +270,33 @@ export default function ProductsPage() {
                   {product.description}
                 </p>
               )}
-              <div className="mt-auto flex items-center justify-between">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
                 <span className="text-base font-semibold">
                   ¥{product.price.toFixed(2)}
                 </span>
                 {!batchMode && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={toggling}
-                    onClick={() => setPending(product)}
-                  >
-                    {product.storeStatus === ProductStoreStatus.getValueByKey("ACTIVE")
-                      ? "设为售罄"
-                      : "设为可售"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCustomizeTarget(product)}
+                    >
+                      管理客制化
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={toggling}
+                      onClick={() => setPending(product)}
+                      className={cn(
+                        product.storeStatus === STORE_ACTIVE
+                          ? "border-red-600/60 text-red-600 hover:border-red-600 hover:bg-red-600/10 hover:text-red-700"
+                          : "border-green-600/60 text-green-600 hover:border-green-600 hover:bg-green-600/10 hover:text-green-700",
+                      )}
+                    >
+                      {product.storeStatus === STORE_ACTIVE ? "下架" : "上架"}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -360,6 +380,23 @@ export default function ProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={customizeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setCustomizeTarget(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>管理客制化</DialogTitle>
+            <DialogDescription>
+              {customizeTarget !== null && `「${customizeTarget.name}」的客制化选项`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-40" />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -52,8 +52,8 @@ pnpm install
 pnpm dev          # 并行启动 api 与 web
 ```
 
-- API 服务：默认端口 `3000`，监听 `0.0.0.0`
-- Web 前端：默认 API 地址 `http://localhost:3000`（可用 `VITE_API_BASE_URL` 覆盖）
+- API 服务：默认端口 `8296`，监听 `0.0.0.0`
+- Web 前端：默认 API 地址 `http://localhost:8296`（可用 `VITE_API_BASE_URL` 覆盖）
 
 首次运行前配置环境变量：
 
@@ -121,7 +121,7 @@ server {
     try_files $uri $uri/ /index.html;   # SPA 路由回退
 
     location /api/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:8296;
         proxy_set_header Host $host;
     }
 }

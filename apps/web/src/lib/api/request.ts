@@ -2,7 +2,7 @@ import { logger } from "@/lib/logger"
 import { clearToken, getToken } from "@/lib/session"
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000"
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8296"
 
 type RequestOptions = Omit<RequestInit, "body" | "headers"> & {
   headers?: Record<string, string>
