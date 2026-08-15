@@ -79,6 +79,28 @@ export class CustomizationRepository {
     return result
   }
 
+  async findOptionById(optionId: number): Promise<CustomizationOption | undefined> {
+    const rows = await db
+      .select()
+      .from(customizationOptions)
+      .where(eq(customizationOptions.id, optionId))
+      .limit(1)
+
+    return rows.length > 0 ? this.toOptionModel(rows[0]) : undefined
+  }
+
+  // 门店状态表为懒加载：无记录视为 STORE_DISABLED，首次写入时插入，之后更新
+  async upsertOptionStoreStatus(
+    optionId: number,
+    storeId: number,
+    status: number,
+  ): Promise<void> {
+    await db
+      .insert(customizationOptionStoreStatus)
+      .values({ optionId, storeId, status })
+      .onDuplicateKeyUpdate({ set: { status } })
+  }
+
   private toItemModel(row: typeof customizationItems.$inferSelect): CustomizationItem {
     return new CustomizationItem(
       Number(row.id),

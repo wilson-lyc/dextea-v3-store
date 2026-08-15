@@ -5,6 +5,8 @@ import {
   type CustomizationOptionView,
 } from '@/mapper/customization-mapper.js'
 import { customizationRepository } from '@/repository/customization-repository.js'
+import { BizError } from '@/shared/errors/biz-error.js'
+import { CustomizationErrorCode } from '@/error/customization-error.js'
 import type { CustomizationOptionStoreStatusCode } from '@dextea/constraints'
 
 export class CustomizationService {
@@ -38,6 +40,21 @@ export class CustomizationService {
     }
 
     return items.map((item) => toCustomizationItemView(item, optionsByItemId.get(item.id) ?? []))
+  }
+
+  async updateOptionStoreStatus(
+    optionId: number,
+    storeId: number,
+    status: CustomizationOptionStoreStatusCode,
+  ): Promise<CustomizationOptionStoreStatusCode> {
+    const option = await customizationRepository.findOptionById(optionId)
+    if (!option) {
+      throw new BizError(CustomizationErrorCode.OPTION_NOT_FOUND)
+    }
+
+    // 门店状态表懒加载：无记录即禁用，首次写入插入，后续更新
+    await customizationRepository.upsertOptionStoreStatus(optionId, storeId, status)
+    return status
   }
 }
 

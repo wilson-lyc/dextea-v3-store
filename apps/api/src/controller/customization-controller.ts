@@ -1,7 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { success } from '@/shared/types/api-response.js'
 import { customizationService } from '@/service/customization-service.js'
-import { listProductCustomizationsRequestSchema } from '@dextea/constraints'
+import {
+  listProductCustomizationsRequestSchema,
+  updateCustomizationOptionStoreStatusRequestSchema,
+} from '@dextea/constraints'
+import type { CustomizationOptionStoreStatusCode } from '@dextea/constraints'
 
 interface ListCustomizationsParams {
   productId: string
@@ -32,6 +36,44 @@ export async function listProductCustomizationsController(
   return reply.send(success(result))
 }
 
+interface UpdateOptionStoreStatusParams {
+  optionId: string
+}
+
+interface UpdateOptionStoreStatusBody {
+  status?: unknown
+}
+
+export async function updateCustomizationOptionStoreStatusController(
+  request: FastifyRequest<{
+    Params: UpdateOptionStoreStatusParams
+    Body: UpdateOptionStoreStatusBody
+  }>,
+  reply: FastifyReply,
+): Promise<void> {
+  const storeId = request.headers['x-store-id']
+  const parsed = updateCustomizationOptionStoreStatusRequestSchema.safeParse({
+    optionId: request.params.optionId,
+    storeId,
+    status: request.body?.status,
+  })
+
+  if (!parsed.success) {
+    return reply.code(400).send({ message: parsed.error.issues[0]?.message ?? '请求参数无效' })
+  }
+
+  const storeStatus = await customizationService.updateOptionStoreStatus(
+    parsed.data.optionId,
+    parsed.data.storeId,
+    parsed.data.status as CustomizationOptionStoreStatusCode,
+  )
+  return reply.send(success({ storeStatus }))
+}
+
 export function registerCustomizationRoutes(fastify: FastifyInstance): void {
   fastify.get('/:productId/customizations', listProductCustomizationsController)
+  fastify.patch(
+    '/customizations/options/:optionId/store-status',
+    updateCustomizationOptionStoreStatusController,
+  )
 }

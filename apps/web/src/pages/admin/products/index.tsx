@@ -58,6 +58,7 @@ export default function ProductsPage() {
   const [customizeTarget, setCustomizeTarget] = useState<ProductView | null>(null)
   const [customizationItems, setCustomizationItems] = useState<CustomizationItemView[]>([])
   const [customizationsLoading, setCustomizationsLoading] = useState(false)
+  const [optionTogglingId, setOptionTogglingId] = useState<number | null>(null)
 
   const activeCount = products.filter((p) => p.storeStatus === STORE_ACTIVE).length
   const disabledCount = products.filter((p) => p.storeStatus === STORE_DISABLED).length
@@ -136,27 +137,29 @@ export default function ProductsPage() {
     )
   }
 
-  function toggleOption(itemId: number, optionId: number) {
-    setCustomizationItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              options: item.options.map((option) =>
-                option.id === optionId
-                  ? {
-                      ...option,
-                      storeStatus:
-                        option.storeStatus === OPTION_STORE_ACTIVE
-                          ? OPTION_STORE_DISABLED
-                          : OPTION_STORE_ACTIVE,
-                    }
-                  : option,
-              ),
-            }
-          : item,
-      ),
-    )
+  async function toggleOption(itemId: number, optionId: number, checked: boolean) {
+    const status = checked ? OPTION_STORE_ACTIVE : OPTION_STORE_DISABLED
+    setOptionTogglingId(optionId)
+    try {
+      await productApi.updateOptionStoreStatus(optionId, status)
+      setCustomizationItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                options: item.options.map((option) =>
+                  option.id === optionId ? { ...option, storeStatus: status } : option,
+                ),
+              }
+            : item,
+        ),
+      )
+    } catch (err) {
+      logger.error("更新客制化选项门店状态失败", err)
+      toast.error(err instanceof ApiError ? err.message : "更新客制化选项门店状态失败")
+    } finally {
+      setOptionTogglingId(null)
+    }
   }
 
   function exitBatchMode() {
@@ -482,7 +485,8 @@ export default function ProductsPage() {
                           </div>
                           <Switch
                             checked={option.storeStatus === OPTION_STORE_ACTIVE}
-                            onCheckedChange={() => toggleOption(item.id, option.id)}
+                            disabled={optionTogglingId !== null}
+                            onCheckedChange={(checked) => toggleOption(item.id, option.id, checked)}
                           />
                         </div>
                       ))}

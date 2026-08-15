@@ -48,4 +48,10 @@ export const productApi = {
   listCustomizations(productId: number): Promise<CustomizationItemView[]> {
     return http.get<CustomizationItemView[]>(`/api/v1/products/${productId}/customizations`)
   },
+  updateOptionStoreStatus(optionId: number, status: number): Promise<{ storeStatus: number }> {
+    return http.patch<{ storeStatus: number }>(
+      `/api/v1/products/customizations/options/${optionId}/store-status`,
+      { status },
+    )
+  },
 }
