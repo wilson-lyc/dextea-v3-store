@@ -2,29 +2,12 @@ import { config } from '@/config.js'
 
 export type LogLevel = 'off' | 'simple' | 'detail'
 
-const DEFAULT_LEVEL: LogLevel =
-  config.nodeEnv === 'production' ? 'simple' : 'detail'
+const DEFAULT_LEVEL: LogLevel = 'detail'
 
 function normalize(raw: string | undefined): LogLevel {
   const v = raw?.trim().toLowerCase()
-  switch (v) {
-    case 'off':
-    case '关闭':
-    case 'disable':
-    case 'disabled':
-      return 'off'
-    case 'simple':
-    case '简洁':
-    case 'brief':
-      return 'simple'
-    case 'detail':
-    case '详细':
-    case 'verbose':
-    case 'debug':
-      return 'detail'
-    default:
-      return DEFAULT_LEVEL
-  }
+  if (v === 'off' || v === 'simple' || v === 'detail') return v
+  return DEFAULT_LEVEL
 }
 
 export const logLevel: LogLevel = normalize(config.logLevel)

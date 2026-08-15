@@ -12,7 +12,6 @@ interface Config {
   host: string;
   corsOrigin: string;
   corsCredentials: boolean;
-  nodeEnv: string;
   logLevel: string;
 
   db: {
@@ -47,8 +46,7 @@ function buildConfig(): Config {
     host: env.HOST || '127.0.0.1',
     corsOrigin: env.CORS_ORIGIN || 'http://localhost:8195',
     corsCredentials: env.CORS_CREDENTIALS !== 'false',
-    nodeEnv: env.NODE_ENV || 'development',
-    logLevel: env.LOG_LEVEL || 'info',
+    logLevel: env.LOG_LEVEL || 'detail',
 
     db: {
       host: env.DB_HOST,
