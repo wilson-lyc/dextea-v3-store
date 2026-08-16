@@ -7,7 +7,7 @@ import { logger } from '../shared/utils/logger.js'
 
 export class OrderService {
   async getOrderWindow(request: FastifyRequest, storeId: number): Promise<OrderWindowResponse> {
-    const target = `${config.orderService.baseUrl}/api/v1/store/orders/window`
+    const target = `${config.orderService.baseUrl}/api/v1/store/orders/window?hours=3`
 
     const authorization = request.headers['authorization']
 
