@@ -6,6 +6,7 @@ import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
 import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
 import { logger } from '@/shared/utils/logger.js'
 import { config } from '@/config.js'
+import { startOrderMakingMq, stopOrderMakingMq } from '@/shared/mq/index.js'
 import { authService } from '@/service/auth-service.js'
 import { registerLoginRoutes, registerStoreRoutes } from '@/controller/store-controller.js'
 import { registerProductRoutes } from '@/controller/product-controller.js'
@@ -37,6 +38,8 @@ await app.register(registerCustomizationRoutes, { prefix: '/api/v1/products' })
 
 registerErrorHandler(app)
 
+await startOrderMakingMq()
+
 try {
   await app.listen({ port: config.port, host: config.host })
   logger.info(`Server started, listening on port ${config.port}`)
@@ -44,3 +47,13 @@ try {
   logger.error('Failed to start server', err)
   process.exit(1)
 }
+
+async function gracefulShutdown(signal: string): Promise<void> {
+  logger.info(`Received ${signal}, shutting down...`)
+  await stopOrderMakingMq()
+  await app.close()
+  process.exit(0)
+}
+
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'))
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'))

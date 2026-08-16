@@ -37,6 +37,20 @@ interface Config {
   orderService: {
     baseUrl: string;
   };
+
+  mq: {
+    orderMaking: MqConfig;
+  };
+}
+
+export interface MqConfig {
+  enabled: boolean;
+  endpoints: string;
+  namespace: string;
+  accessKey: string;
+  secretKey: string;
+  topic: string;
+  consumerGroup: string;
 }
 
 function buildConfig(): Config {
@@ -74,6 +88,18 @@ function buildConfig(): Config {
 
     orderService: {
       baseUrl: env.ORDER_SERVICE_BASE_URL || '',
+    },
+
+    mq: {
+      orderMaking: {
+        enabled: env.ORDER_MAKING_MQ_ENABLED === 'true',
+        endpoints: env.ORDER_MAKING_MQ_ENDPOINTS || '',
+        namespace: env.ORDER_MAKING_MQ_NAMESPACE || '',
+        accessKey: env.ORDER_MAKING_MQ_ACCESS_KEY || '',
+        secretKey: env.ORDER_MAKING_MQ_SECRET_KEY || '',
+        topic: env.ORDER_MAKING_MQ_TOPIC || '',
+        consumerGroup: env.ORDER_MAKING_MQ_CONSUMER_GROUP || '',
+      },
     },
   };
 }
