@@ -33,6 +33,10 @@ interface Config {
     secret: string;
     expiresIn: string;
   };
+
+  orderService: {
+    baseUrl: string;
+  };
 }
 
 function buildConfig(): Config {
@@ -67,6 +71,10 @@ function buildConfig(): Config {
       secret: env.JWT_SECRET || '',
       expiresIn: env.JWT_EXPIRES_IN || '7d',
     },
+
+    orderService: {
+      baseUrl: env.ORDER_SERVICE_BASE_URL || '',
+    },
   };
 }
 
@@ -82,6 +90,8 @@ function validateConfig(config: Config): void {
   if (!config.redis.port || !Number.isFinite(config.redis.port) || config.redis.port <= 0) missing.push('REDIS_PORT');
 
   if (!config.jwt.secret) missing.push('JWT_SECRET');
+
+  if (!config.orderService.baseUrl) missing.push('ORDER_SERVICE_BASE_URL');
 
   if (missing.length > 0) {
     console.error(

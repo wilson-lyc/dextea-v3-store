@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Coffee } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  activeOrders,
   getOrderStatus,
+  getOrderWindow,
   storeName,
   type Order,
 } from "./data"
@@ -24,16 +24,37 @@ const statusTabs: { key: number | "all"; label: string }[] = [
 export default function CounterPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<number | "all">("all")
-  const [selectedId, setSelectedId] = useState<string | null>("o15")
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [allOrders, setAllOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    getOrderWindow()
+      .then((orders) => {
+        if (cancelled) return
+        setAllOrders(orders)
+      })
+      .catch(() => {
+        if (!cancelled) setAllOrders([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const visibleOrders = useMemo(
     () =>
-      activeOrders.filter(
+      allOrders.filter(
         (order) =>
           order.paymentStatus === 2 &&
           VISIBLE_MAKING_STATUS.includes(order.makingStatus)
       ),
-    []
+    [allOrders]
   )
 
   const orders = useMemo<Order[]>(
@@ -52,7 +73,9 @@ export default function CounterPage() {
     return map
   }, [visibleOrders])
 
-  const selected = orders.find((order) => order.id === selectedId) ?? null
+  const selected = orders.find((order) => order.id === effectiveSelectedId) ?? null
+
+  const effectiveSelectedId = selectedId ?? orders[0]?.id ?? null
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
@@ -79,7 +102,7 @@ export default function CounterPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="hidden sm:inline">订单总数</span>
           <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {activeOrders.length}
+            {visibleOrders.length}
           </span>
         </div>
       </header>
@@ -102,7 +125,12 @@ export default function CounterPage() {
         <section className="flex min-h-0 flex-col overflow-hidden border-r">
           <ScrollArea className="min-h-0 flex-1">
             <div className="space-y-2 p-3">
-              {orders.length === 0 ? (
+              {loading ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
+                  <Coffee className="size-8 animate-pulse text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">订单加载中…</p>
+                </div>
+              ) : orders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
                   <Coffee className="size-8 text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">当前没有订单</p>
@@ -112,7 +140,7 @@ export default function CounterPage() {
                   <OrderCard
                     key={order.id}
                     order={order}
-                    selected={selectedId === order.id}
+                    selected={effectiveSelectedId === order.id}
                     onSelect={setSelectedId}
                   />
                 ))
