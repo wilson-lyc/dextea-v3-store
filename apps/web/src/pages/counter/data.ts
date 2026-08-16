@@ -1,6 +1,11 @@
 import { OrderMakingStatus, OrderPaymentStatus } from "@dextea/constraints"
 
-import { fetchOrderWindow, type OrderWindowItem } from "@/lib/api/orders"
+import {
+  fetchOrderDetail,
+  fetchOrderWindow,
+  type OrderDetailData,
+  type OrderWindowItem,
+} from "@/lib/api/orders"
 
 export interface OrderItem {
   id: string
@@ -75,6 +80,28 @@ function mapOrderWindowItem(item: OrderWindowItem): Order {
 export async function getOrderWindow(): Promise<Order[]> {
   const result = await fetchOrderWindow()
   return result.items.map(mapOrderWindowItem)
+}
+
+export async function getOrderDetail(orderId: number): Promise<Order> {
+  const detail = await fetchOrderDetail(orderId)
+  return {
+    id: String(detail.orderId),
+    orderNo: detail.orderNo,
+    code: detail.pickupCode,
+    customer: mapDiningType(detail.diningMethod) === "外卖" ? "外卖订单" : "门店订单",
+    type: mapDiningType(detail.diningMethod),
+    paymentStatus: detail.paymentStatus,
+    makingStatus: detail.makingStatus,
+    items: detail.items.map((item) => ({
+      id: String(item.skuId),
+      name: item.spec ? `${item.name}（${item.spec}）` : item.name,
+      price: item.price,
+      quantity: item.quantity,
+      note: item.note,
+    })),
+    total: detail.totalPrice,
+    createdAt: formatCreatedAt(detail.createdAt),
+  }
 }
 
 export const storeName = "德贤茶 · 中心广场店"
