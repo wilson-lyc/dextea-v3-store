@@ -73,9 +73,9 @@ export default function CounterPage() {
     return map
   }, [visibleOrders])
 
-  const selected = orders.find((order) => order.id === effectiveSelectedId) ?? null
-
   const effectiveSelectedId = selectedId ?? orders[0]?.id ?? null
+
+  const selected = orders.find((order) => order.id === effectiveSelectedId) ?? null
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
