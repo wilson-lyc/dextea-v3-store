@@ -5,6 +5,7 @@ import { ArrowLeft, Coffee } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
+  getOrderDetail,
   getOrderStatus,
   getOrderWindow,
   storeName,
@@ -76,6 +77,31 @@ export default function CounterPage() {
   const effectiveSelectedId = selectedId ?? orders[0]?.id ?? null
 
   const selected = orders.find((order) => order.id === effectiveSelectedId) ?? null
+
+  const [detail, setDetail] = useState<Order | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  useEffect(() => {
+    if (!effectiveSelectedId) {
+      setDetail(null)
+      return
+    }
+    let cancelled = false
+    setDetailLoading(true)
+    getOrderDetail(Number(effectiveSelectedId))
+      .then((order) => {
+        if (!cancelled) setDetail(order)
+      })
+      .catch(() => {
+        if (!cancelled) setDetail(null)
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [effectiveSelectedId])
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
@@ -160,8 +186,10 @@ export default function CounterPage() {
         </section>
 
         <section className="flex min-h-0 flex-col overflow-hidden">
-          {selected ? (
+          {detailLoading ? (
             <OrderDetail order={selected} />
+          ) : detail ? (
+            <OrderDetail order={detail} />
           ) : (
             <OrderDetailEmpty text="请选择左侧订单查看详情" />
           )}
