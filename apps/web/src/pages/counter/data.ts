@@ -13,6 +13,8 @@ export interface OrderItem {
   price: number
   quantity: number
   note?: string
+  coverUrl?: string | null
+  customization?: string | null
 }
 
 export interface Order {
@@ -85,7 +87,7 @@ export async function getOrderWindow(): Promise<Order[]> {
 export async function getOrderDetail(orderId: number): Promise<Order> {
   const detail = await fetchOrderDetail(orderId)
   return {
-    id: String(detail.orderId),
+    id: String(detail.id),
     orderNo: detail.orderNo,
     code: detail.pickupCode,
     customer: mapDiningType(detail.diningMethod) === "外卖" ? "外卖订单" : "门店订单",
@@ -93,11 +95,13 @@ export async function getOrderDetail(orderId: number): Promise<Order> {
     paymentStatus: detail.paymentStatus,
     makingStatus: detail.makingStatus,
     items: detail.items.map((item) => ({
-      id: String(item.skuId),
-      name: item.spec ? `${item.name}（${item.spec}）` : item.name,
-      price: item.price,
+      id: item.id != null ? String(item.id) : `${item.productId}-${item.skuId}`,
+      name: item.productName,
+      price: item.unitPrice,
       quantity: item.quantity,
-      note: item.note,
+      note: detail.note ?? undefined,
+      coverUrl: item.coverUrl,
+      customization: item.customization,
     })),
     total: detail.totalPrice,
     createdAt: formatCreatedAt(detail.createdAt),

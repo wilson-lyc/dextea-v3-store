@@ -26,24 +26,37 @@ export interface OrderWindowResponse {
 }
 
 export interface OrderDetailItem {
-  skuId: number;
-  name: string;
-  spec?: string;
-  price: number;
+  id: number | null;
+  productId: number;
+  productName: string;
+  skuId: string;
+  customization: string | null;
+  coverUrl: string | null;
   quantity: number;
-  note?: string;
+  unitPrice: number;
+  totalPrice: number;
+  available: boolean;
 }
 
 export interface OrderDetailData {
-  orderId: number;
+  id: number;
   orderNo: string;
+  tradeNo: string;
+  storeId: number;
+  diningMethod: DiningMethod;
+  note: string | null;
+  source: number;
   pickupCode: string;
+  makingStatus: MakingStatus;
+  paymentMethod: number;
+  paymentStatus: PaymentStatus;
+  paymentExpiredAt: string | null;
+  paymentPaidAt: string | null;
+  paymentRefundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
   totalPrice: number;
   totalQuantity: number;
-  diningMethod: DiningMethod;
-  makingStatus: MakingStatus;
-  paymentStatus: PaymentStatus;
-  createdAt: string;
   items: OrderDetailItem[];
 }
 

@@ -35,15 +35,29 @@ export function OrderDetail({ order }: OrderDetailProps) {
           {order.items.map((line) => (
             <div
               key={line.id}
-              className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3"
+              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3"
             >
-              <div>
-                <p className="text-sm font-medium">{line.name}</p>
-                {line.note && (
-                  <p className="text-xs text-muted-foreground">备注：{line.note}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                {line.coverUrl && (
+                  <img
+                    src={line.coverUrl}
+                    alt={line.name}
+                    className="size-12 shrink-0 rounded-lg object-cover"
+                  />
                 )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{line.name}</p>
+                  {line.customization && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {line.customization.replace(/_/g, " · ")}
+                    </p>
+                  )}
+                  {line.note && (
+                    <p className="truncate text-xs text-muted-foreground">备注：{line.note}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex shrink-0 items-center gap-4 text-sm">
                 <span className="text-muted-foreground">
                   ¥{line.price} ×{line.quantity}
                 </span>
