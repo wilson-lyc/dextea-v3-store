@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import { db } from '@/shared/database/index.js'
+import type { Database } from '@/shared/database/index.js'
 import {
   customizationItems,
   customizationOptions,
@@ -15,8 +15,10 @@ import {
 } from '@dextea/constraints'
 
 export class CustomizationRepository {
-  async findActiveItemsByProductId(productId: number): Promise<CustomizationItem[]> {
-    const rows = await db
+  public constructor(private readonly db: Database) {}
+
+  public async findActiveItemsByProductId(productId: number): Promise<CustomizationItem[]> {
+    const rows = await this.db
       .select()
       .from(customizationItems)
       .where(
@@ -30,12 +32,12 @@ export class CustomizationRepository {
     return rows.map((row) => this.toItemModel(row))
   }
 
-  async findActiveOptionsByItemIds(itemIds: number[]): Promise<CustomizationOption[]> {
+  public async findActiveOptionsByItemIds(itemIds: number[]): Promise<CustomizationOption[]> {
     if (itemIds.length === 0) {
       return []
     }
 
-    const rows = await db
+    const rows = await this.db
       .select()
       .from(customizationOptions)
       .where(
@@ -49,7 +51,7 @@ export class CustomizationRepository {
     return rows.map((row) => this.toOptionModel(row))
   }
 
-  async findOptionStoreStatusByStoreId(
+  public async findOptionStoreStatusByStoreId(
     storeId: number,
     optionIds: number[],
   ): Promise<Map<number, number>> {
@@ -62,7 +64,7 @@ export class CustomizationRepository {
       return result
     }
 
-    const rows = await db
+    const rows = await this.db
       .select()
       .from(customizationOptionStoreStatus)
       .where(
@@ -79,8 +81,8 @@ export class CustomizationRepository {
     return result
   }
 
-  async findOptionById(optionId: number): Promise<CustomizationOption | undefined> {
-    const rows = await db
+  public async findOptionById(optionId: number): Promise<CustomizationOption | undefined> {
+    const rows = await this.db
       .select()
       .from(customizationOptions)
       .where(eq(customizationOptions.id, optionId))
@@ -90,12 +92,12 @@ export class CustomizationRepository {
   }
 
   // 门店状态表为懒加载：无记录视为 STORE_DISABLED，首次写入时插入，之后更新
-  async upsertOptionStoreStatus(
+  public async upsertOptionStoreStatus(
     optionId: number,
     storeId: number,
     status: number,
   ): Promise<void> {
-    await db
+    await this.db
       .insert(customizationOptionStoreStatus)
       .values({ optionId, storeId, status })
       .onDuplicateKeyUpdate({ set: { status } })
@@ -126,5 +128,3 @@ export class CustomizationRepository {
     )
   }
 }
-
-export const customizationRepository = new CustomizationRepository()

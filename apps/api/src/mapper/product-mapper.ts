@@ -6,7 +6,6 @@ export interface ProductView {
   name: string
   description: string | null
   price: number
-  image: string | null
   status: ProductGlobalStatusCode
   storeStatus: ProductStoreStatusCode
   createdAt: string
@@ -19,7 +18,6 @@ export function toProductView(product: Product, storeStatus: ProductStoreStatusC
     name: product.name,
     description: product.description,
     price: product.price,
-    image: product.image,
     status: product.status,
     storeStatus,
     createdAt: product.createdAt,

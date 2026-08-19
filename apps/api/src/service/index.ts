@@ -1,0 +1,5 @@
+export { AuthService } from '@/service/auth-service.js'
+export { StoreService } from '@/service/store-service.js'
+export { ProductService } from '@/service/product-service.js'
+export { CustomizationService } from '@/service/customization-service.js'
+export { OrderService } from '@/service/order-service.js'

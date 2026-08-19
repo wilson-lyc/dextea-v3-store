@@ -13,4 +13,6 @@ const pool = mysql.createPool({
 })
 
 export const db = drizzle(pool)
+export type Database = typeof db
 export { pool }
+export * from './schema.js'

@@ -1,13 +1,15 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import { db } from '@/shared/database/index.js'
+import type { Database } from '@/shared/database/index.js'
 import { products, productStoreStatus } from '@/shared/database/schema.js'
 import { Product } from '@/model/product.js'
 import type { ProductGlobalStatusCode } from '@dextea/constraints'
 import { productStoreStatusCode } from '@dextea/constraints'
 
 export class ProductRepository {
-  async findGloballyActive(): Promise<Product[]> {
-    const rows = await db
+  public constructor(private readonly db: Database) {}
+
+  public async findGloballyActive(): Promise<Product[]> {
+    const rows = await this.db
       .select()
       .from(products)
       .where(eq(products.status, 1))
@@ -16,7 +18,10 @@ export class ProductRepository {
     return rows.map((row) => this.toModel(row))
   }
 
-  async findStoreStatusByStoreId(storeId: number, productIds: number[]): Promise<Map<number, number>> {
+  public async findStoreStatusByStoreId(
+    storeId: number,
+    productIds: number[],
+  ): Promise<Map<number, number>> {
     const result = new Map<number, number>()
     for (const productId of productIds) {
       result.set(productId, productStoreStatusCode.STORE_DISABLED)
@@ -26,10 +31,15 @@ export class ProductRepository {
       return result
     }
 
-    const rows = await db
+    const rows = await this.db
       .select()
       .from(productStoreStatus)
-      .where(and(eq(productStoreStatus.storeId, storeId), inArray(productStoreStatus.productId, productIds)))
+      .where(
+        and(
+          eq(productStoreStatus.storeId, storeId),
+          inArray(productStoreStatus.productId, productIds),
+        ),
+      )
 
     for (const row of rows) {
       result.set(Number(row.productId), Number(row.status))
@@ -38,20 +48,20 @@ export class ProductRepository {
     return result
   }
 
-  async setStoreStatus(storeId: number, productId: number, status: number): Promise<void> {
-    await db
+  public async setStoreStatus(storeId: number, productId: number, status: number): Promise<void> {
+    await this.db
       .insert(productStoreStatus)
       .values({ storeId, productId, status })
       .onDuplicateKeyUpdate({ set: { status } })
   }
 
-  async batchSetStoreStatus(
+  public async batchSetStoreStatus(
     storeId: number,
     productIds: number[],
     status: number,
   ): Promise<void> {
     if (productIds.length === 0) return
-    await db
+    await this.db
       .insert(productStoreStatus)
       .values(productIds.map((productId) => ({ storeId, productId, status })))
       .onDuplicateKeyUpdate({ set: { status } })
@@ -63,12 +73,9 @@ export class ProductRepository {
       row.name,
       row.description,
       Number(row.price),
-      row.image,
       row.status as ProductGlobalStatusCode,
-      row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
-      row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
+      row.createdAt,
+      row.updatedAt,
     )
   }
 }
-
-export const productRepository = new ProductRepository()

@@ -1,74 +1,52 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import {
-  loginRequestSchema,
-  resetPasswordRequestSchema,
-  updateStoreStatusRequestSchema,
-  type LoginRequest,
-  type ResetPasswordRequest,
-  type UpdateStoreStatusRequest,
-} from '@dextea/constraints'
 import { success } from '@/shared/types/api-response.js'
-import { authService } from '@/service/auth-service.js'
-import { storeService } from '@/service/store-service.js'
+import type { AuthService } from '@/service/auth-service.js'
+import type { StoreService } from '@/service/store-service.js'
+import type { LoginRequest, ResetPasswordRequest, UpdateStoreStatusRequest } from '@dextea/constraints'
 
-export async function loginController(
-  request: FastifyRequest<{ Body: LoginRequest }>,
-  reply: FastifyReply,
-): Promise<void> {
-  const result = await authService.login(request.body as LoginRequest)
-  return reply.send(success(result))
+interface StoreParams {
+  id: string
 }
 
-export async function getStoreController(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const storeId = Number(request.headers['x-store-id'])
-  const result = await storeService.getById(storeId)
-  return reply.send(success(result))
-}
+export class StoreController {
+  public constructor(
+    private readonly authService: AuthService,
+    private readonly storeService: StoreService,
+  ) {}
 
-export async function updateStoreStatusController(
-  request: FastifyRequest<{ Body: UpdateStoreStatusRequest }>,
-  reply: FastifyReply,
-): Promise<void> {
-  const storeId = Number(request.headers['x-store-id'])
-  await storeService.updateStatus(storeId, request.body)
-  return reply.send(success(null))
-}
+  public async login(request: FastifyRequest<{ Body: LoginRequest }>, reply: FastifyReply): Promise<void> {
+    const { token, storeId } = await this.authService.login(request.body)
+    return reply.send(success({ token, storeId }))
+  }
 
-export async function resetPasswordController(
-  request: FastifyRequest<{ Body: ResetPasswordRequest }>,
-  reply: FastifyReply,
-): Promise<void> {
-  const storeId = Number(request.headers['x-store-id'])
-  await storeService.resetPassword(storeId, request.body as ResetPasswordRequest)
-  return reply.send(success(null))
-}
+  public async getById(
+    request: FastifyRequest<{ Params: StoreParams }>,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const store = await this.storeService.getById(Number(request.params.id))
+    return reply.send(success(store))
+  }
 
-export function registerLoginRoutes(fastify: FastifyInstance): void {
-  fastify.post('/login', {
-    schema: {
-      body: loginRequestSchema,
-    },
-  }, loginController)
-}
+  public async updateStatus(
+    request: FastifyRequest<{ Params: StoreParams; Body: UpdateStoreStatusRequest }>,
+    reply: FastifyReply,
+  ): Promise<void> {
+    await this.storeService.updateStatus(Number(request.params.id), request.body)
+    return reply.send(success(null))
+  }
 
-export function registerStoreRoutes(fastify: FastifyInstance): void {
-  fastify.get('/', getStoreController)
-  fastify.put(
-    '/status',
-    {
-      schema: {
-        body: updateStoreStatusRequestSchema,
-      },
-    },
-    updateStoreStatusController,
-  )
-  fastify.put(
-    '/password',
-    {
-      schema: {
-        body: resetPasswordRequestSchema,
-      },
-    },
-    resetPasswordController,
-  )
+  public async resetPassword(
+    request: FastifyRequest<{ Params: StoreParams; Body: ResetPasswordRequest }>,
+    reply: FastifyReply,
+  ): Promise<void> {
+    await this.storeService.resetPassword(Number(request.params.id), request.body)
+    return reply.send(success(null))
+  }
+
+  public registerRoutes(fastify: FastifyInstance): void {
+    fastify.post('/login', this.login.bind(this))
+    fastify.get('/stores/:id', this.getById.bind(this))
+    fastify.patch('/stores/:id/status', this.updateStatus.bind(this))
+    fastify.post('/stores/:id/reset-password', this.resetPassword.bind(this))
+  }
 }

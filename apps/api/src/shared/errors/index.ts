@@ -1,3 +1,3 @@
-export { BizError } from './biz-error.js'
-export { BizErrorCode } from './biz-error-code.js'
-export { success, toApiResponse } from '../types/api-response.js'
+export { BizError } from '@/shared/errors/biz-error.js'
+export { BizErrorCode } from '@/shared/errors/biz-error-code.js'
+export { success, toApiResponse } from '@/shared/types/api-response.js'

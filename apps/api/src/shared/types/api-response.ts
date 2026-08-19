@@ -1,4 +1,4 @@
-import { BizError } from '../errors/biz-error.js'
+import { BizError } from '@/shared/errors/biz-error.js'
 
 export const SUCCESS_CODE = 0
 export const SUCCESS_MESSAGE = 'success'

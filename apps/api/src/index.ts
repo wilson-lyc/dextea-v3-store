@@ -1,59 +1,37 @@
-import Fastify from 'fastify'
-import cors from '@fastify/cors'
-import helmet from '@fastify/helmet'
-import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod'
-import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
-import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
-import { logger } from '@/shared/utils/logger.js'
 import { config } from '@/config.js'
+import { logger } from '@/shared/utils/logger.js'
+import { createApp } from '@/app.js'
 import { startOrderMakingMq, stopOrderMakingMq } from '@/shared/mq/index.js'
-import { authService } from '@/service/auth-service.js'
-import { registerLoginRoutes, registerStoreRoutes } from '@/controller/store-controller.js'
-import { registerProductRoutes } from '@/controller/product-controller.js'
-import { registerCustomizationRoutes } from '@/controller/customization-controller.js'
-import { registerOrderRoutes } from '@/controller/order-controller.js'
 
-const app = Fastify({
-  logger: true,
-})
-  .setValidatorCompiler(validatorCompiler)
-  .setSerializerCompiler(serializerCompiler)
-  .withTypeProvider<ZodTypeProvider>()
+async function bootstrap(): Promise<void> {
+  const app = createApp()
 
-await app.register(helmet)
-const corsOriginRaw = config.corsOrigin.trim()
-const corsOrigin = corsOriginRaw === '*' || corsOriginRaw === ''
-  ? true
-  : corsOriginRaw.split(',').map((o) => o.trim()).filter(Boolean)
-await app.register(cors, {
-  origin: corsOrigin,
-  credentials: config.corsCredentials,
-})
-app.addHook('onRequest', createStoreIdInterceptor(authService))
-await app.register(registerLoginRoutes, { prefix: '/api/v1/auth' })
-await app.register(registerStoreRoutes, { prefix: '/api/v1/store' })
-await app.register(registerOrderRoutes, { prefix: '/api/v1/store' })
-await app.register(registerProductRoutes, { prefix: '/api/v1/products' })
-await app.register(registerCustomizationRoutes, { prefix: '/api/v1/products' })
+  try {
+    await startOrderMakingMq()
+  } catch (error) {
+    logger.error('订单制作 MQ 启动失败', error)
+  }
 
-registerErrorHandler(app)
+  const shutdown = async (): Promise<void> => {
+    logger.info('正在关闭服务...')
+    await stopOrderMakingMq().catch(() => undefined)
+    await app.close().catch(() => undefined)
+    process.exit(0)
+  }
 
-await startOrderMakingMq()
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 
-try {
-  await app.listen({ port: config.port, host: config.host })
-  logger.info(`Server started, listening on port ${config.port}`)
-} catch (err) {
-  logger.error('Failed to start server', err)
+  app.listen({ port: config.port, host: '0.0.0.0' }, (err) => {
+    if (err) {
+      logger.error('服务启动失败', err)
+      process.exit(1)
+    }
+    logger.info(`服务已启动: http://0.0.0.0:${config.port}`)
+  })
+}
+
+bootstrap().catch((err) => {
+  logger.error('启动过程发生未捕获异常', err)
   process.exit(1)
-}
-
-async function gracefulShutdown(signal: string): Promise<void> {
-  logger.info(`Received ${signal}, shutting down...`)
-  await stopOrderMakingMq()
-  await app.close()
-  process.exit(0)
-}
-
-process.on('SIGINT', () => void gracefulShutdown('SIGINT'))
-process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'))
+})

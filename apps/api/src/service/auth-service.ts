@@ -4,7 +4,7 @@ import { BizError } from '@/shared/errors/biz-error.js'
 import { StoreErrorCode } from '@/error/store-error.js'
 import { logger } from '@/shared/utils/logger.js'
 import { verifyPassword } from '@/shared/security/password.js'
-import { storeRepository } from '@/repository/store-repository.js'
+import type { StoreRepository } from '@/repository/store-repository.js'
 import type { LoginRequest, LoginResponse } from '@dextea/constraints'
 
 export interface JwtUserClaims {
@@ -26,12 +26,16 @@ export class AuthServiceImpl implements AuthService {
   private readonly secret: string
   private readonly expiresIn: string
 
-  constructor(secret: string = config.jwt.secret, expiresIn: string = config.jwt.expiresIn) {
+  constructor(
+    private readonly storeRepository: StoreRepository,
+    secret: string = config.jwt.secret,
+    expiresIn: string = config.jwt.expiresIn,
+  ) {
     this.secret = secret
     this.expiresIn = expiresIn
   }
 
-  generateToken(claims: JwtUserClaims): { token: string; expiresIn: number } {
+  public generateToken(claims: JwtUserClaims): { token: string; expiresIn: number } {
     const token = jwt.sign(claims, this.secret, {
       expiresIn: this.expiresIn as jwt.SignOptions['expiresIn'],
     })
@@ -40,7 +44,7 @@ export class AuthServiceImpl implements AuthService {
     return { token, expiresIn }
   }
 
-  verifyToken(token: string): VerifiedToken {
+  public verifyToken(token: string): VerifiedToken {
     try {
       return jwt.verify(token, this.secret) as VerifiedToken
     } catch (error) {
@@ -54,8 +58,8 @@ export class AuthServiceImpl implements AuthService {
     }
   }
 
-  async login(input: LoginRequest): Promise<LoginResponse> {
-    const store = await storeRepository.findByAccount(input.account)
+  public async login(input: LoginRequest): Promise<LoginResponse> {
+    const store = await this.storeRepository.findByAccount(input.account)
     if (!store) {
       throw new BizError(StoreErrorCode.INVALID_CREDENTIALS)
     }
@@ -86,5 +90,3 @@ export class AuthServiceImpl implements AuthService {
     }
   }
 }
-
-export const authService = new AuthServiceImpl()

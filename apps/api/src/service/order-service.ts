@@ -1,9 +1,9 @@
 import type { FastifyRequest } from 'fastify'
-import { config } from '../config.js'
+import { config } from '@/config.js'
 import { OrderDetailResponse, OrderWindowResponse } from '@dextea/constraints'
-import { BizError } from '../shared/errors/biz-error.js'
-import { OrderError } from '../error/order-error.js'
-import { logger } from '../shared/utils/logger.js'
+import { BizError } from '@/shared/errors/biz-error.js'
+import { OrderError } from '@/error/order-error.js'
+import { logger } from '@/shared/utils/logger.js'
 
 export class OrderService {
   private async forward<T>(

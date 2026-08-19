@@ -1,3 +1,3 @@
-export * from './types.js'
-export * from './client.js'
-export * from './order-making.js'
+export * from '@/shared/mq/types.js'
+export * from '@/shared/mq/client.js'
+export * from '@/shared/mq/order-making.js'
