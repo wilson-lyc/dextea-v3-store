@@ -41,6 +41,15 @@ interface Config {
   mq: {
     orderMaking: MqConfig;
   };
+
+  nacos: {
+    serverAddr: string;
+    namespace: string;
+    group: string;
+    dataId: string;
+    username: string;
+    password: string;
+  };
 }
 
 export interface MqConfig {
@@ -100,6 +109,15 @@ function buildConfig(): Config {
         topic: env.ORDER_MAKING_MQ_TOPIC || '',
         consumerGroup: env.ORDER_MAKING_MQ_CONSUMER_GROUP || '',
       },
+    },
+
+    nacos: {
+      serverAddr: env.NACOS_SERVER_ADDR || '',
+      namespace: env.NACOS_NAMESPACE || 'public',
+      group: env.NACOS_GROUP || 'DEFAULT_GROUP',
+      dataId: env.NACOS_DATA_ID || '',
+      username: env.NACOS_USERNAME || '',
+      password: env.NACOS_PASSWORD || '',
     },
   };
 }

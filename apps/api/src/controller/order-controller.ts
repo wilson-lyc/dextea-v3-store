@@ -21,7 +21,29 @@ export async function getOrderDetailController(
   return reply.send(result)
 }
 
+export async function markOrderReadyController(
+  request: FastifyRequest<{ Params: OrderParams }>,
+  reply: FastifyReply,
+): Promise<void> {
+  const storeId = Number(request.headers['x-store-id'])
+  const orderId = Number(request.params.id)
+  const result = await orderService.markOrderReady(request, storeId, orderId)
+  return reply.send(result)
+}
+
+export async function markOrderCollectedController(
+  request: FastifyRequest<{ Params: OrderParams }>,
+  reply: FastifyReply,
+): Promise<void> {
+  const storeId = Number(request.headers['x-store-id'])
+  const orderId = Number(request.params.id)
+  const result = await orderService.markOrderCollected(request, storeId, orderId)
+  return reply.send(result)
+}
+
 export function registerOrderRoutes(fastify: FastifyInstance): void {
   fastify.get('/orders/window', getOrderWindowController)
   fastify.get('/orders/:id', getOrderDetailController)
+  fastify.post('/orders/:id/ready', markOrderReadyController)
+  fastify.post('/orders/:id/collect', markOrderCollectedController)
 }

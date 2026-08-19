@@ -6,20 +6,27 @@ import { OrderError } from '../error/order-error.js'
 import { logger } from '../shared/utils/logger.js'
 
 export class OrderService {
-  private async forward<T>(request: FastifyRequest, storeId: number, path: string): Promise<T> {
+  private async forward<T>(
+    request: FastifyRequest,
+    storeId: number,
+    path: string,
+    method: 'GET' | 'POST' = 'GET',
+  ): Promise<T> {
     const target = `${config.orderService.baseUrl}${path}`
     const authorization = request.headers['authorization']
 
     const response = await fetch(target, {
-      method: 'GET',
+      method,
       headers: {
         ...(authorization ? { Authorization: authorization } : {}),
         'X-Store-Id': String(storeId),
+        ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
       },
+      ...(method === 'POST' ? { body: '{}' } : {}),
     })
 
     if (!response.ok) {
-      logger.error(`[order-service] order microservice responded ${response.status} for ${path}`)
+      logger.error(`[order-service] order microservice responded ${response.status} for ${method} ${path}`)
       throw new BizError(OrderError.ORDER_SERVICE_UNAVAILABLE)
     }
 
@@ -32,6 +39,24 @@ export class OrderService {
 
   async getOrderDetail(request: FastifyRequest, storeId: number, orderId: number): Promise<OrderDetailResponse> {
     return this.forward<OrderDetailResponse>(request, storeId, `/api/v1/store/orders/${orderId}`)
+  }
+
+  async markOrderReady(request: FastifyRequest, storeId: number, orderId: number): Promise<OrderDetailResponse> {
+    return this.forward<OrderDetailResponse>(
+      request,
+      storeId,
+      `/api/v1/store/orders/${orderId}/ready`,
+      'POST',
+    )
+  }
+
+  async markOrderCollected(request: FastifyRequest, storeId: number, orderId: number): Promise<OrderDetailResponse> {
+    return this.forward<OrderDetailResponse>(
+      request,
+      storeId,
+      `/api/v1/store/orders/${orderId}/collect`,
+      'POST',
+    )
   }
 }
 
