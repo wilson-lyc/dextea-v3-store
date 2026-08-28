@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建共享契约包
+        run: pnpm -C packages/constraints build
+
+      - name: 类型检查
+        run: pnpm --filter api run typecheck
+
+      - name: 静态检查
+        run: pnpm --filter api run lint
+
+      - name: 测试
+        run: pnpm --filter api run test
+
+      - name: 构建
+        run: pnpm --filter api run build
+
+  frontend:
+    name: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建共享契约包
+        run: pnpm -C packages/constraints build
+
+      - name: 静态检查
+        run: pnpm --filter web run lint
+
+      - name: 类型检查与构建
+        run: pnpm --filter web run build

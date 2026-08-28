@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   getOrderDetail,
-  getOrderStatus,
   getOrderWindow,
   storeName,
   type Order,
@@ -31,7 +30,6 @@ export default function CounterPage() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
     getOrderWindow()
       .then((orders) => {
         if (cancelled) return
@@ -79,29 +77,26 @@ export default function CounterPage() {
   const selected = orders.find((order) => order.id === effectiveSelectedId) ?? null
 
   const [detail, setDetail] = useState<Order | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => {
-    if (!effectiveSelectedId) {
-      setDetail(null)
-      return
-    }
+    if (!effectiveSelectedId) return
     let cancelled = false
-    setDetailLoading(true)
-    getOrderDetail(Number(effectiveSelectedId))
-      .then((order) => {
+    void (async () => {
+      try {
+        const order = await getOrderDetail(Number(effectiveSelectedId))
         if (!cancelled) setDetail(order)
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setDetail(null)
-      })
-      .finally(() => {
-        if (!cancelled) setDetailLoading(false)
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
   }, [effectiveSelectedId])
+
+  // 详情为异步拉取结果，仅在仍对应当前选中项时展示，避免切换选中时残留旧数据
+  const detailMatchesSelection = detail !== null && detail.id === effectiveSelectedId
+  const displayedDetail = detailMatchesSelection ? detail : selected
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
@@ -186,10 +181,8 @@ export default function CounterPage() {
         </section>
 
         <section className="flex min-h-0 flex-col overflow-hidden">
-          {detailLoading ? (
-            <OrderDetail order={selected} />
-          ) : detail ? (
-            <OrderDetail order={detail} />
+          {displayedDetail ? (
+            <OrderDetail order={displayedDetail} />
           ) : (
             <OrderDetailEmpty text="请选择左侧订单查看详情" />
           )}

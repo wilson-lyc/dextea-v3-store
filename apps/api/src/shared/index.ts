@@ -1,5 +1,0 @@
-export * from '@/config.js'
-export * from '@/shared/errors/index.js'
-export * from '@/shared/interfaces/error-handler.js'
-export * from '@/shared/mq/index.js'
-export * from '@/shared/nacos/config-client.js'

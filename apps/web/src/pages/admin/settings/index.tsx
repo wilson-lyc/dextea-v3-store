@@ -60,7 +60,6 @@ export default function StoreSettingsPage() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
     storeApi
       .getStore()
       .then((data) => {

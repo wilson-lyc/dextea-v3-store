@@ -1,13 +1,30 @@
 node_modules/
+.pnpm-store/
+.env
+.env.local
+.env.*.local
+dist/
+build/
+coverage/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.env
-.env.local
-dist/
-build/
-*.log
+*.tsbuildinfo
+*.tsbuildinfo.*
 .DS_Store
-coverage/
-apps/api/drizzle/
-.pnpm-store
+
+# 环境回收站：删除操作时由工具链生成，不属于项目文件
+.Trash-*/
+
+# 构建工具的临时文件（vite / vitest 等）
+_tmp_*/
+*.timestamp-*.mjs
+vitest.config.*.timestamp-*
+vite.config.*.timestamp-*
+
+# 编辑器与系统
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp

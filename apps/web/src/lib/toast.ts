@@ -22,6 +22,12 @@ export interface PromiseToastOptions<Value> {
   description?: React.ReactNode
 }
 
+interface ResolvedToast {
+  title: React.ReactNode
+  type: ToastType
+  description?: React.ReactNode
+}
+
 function addToast(options: ToastOptions & { type?: ToastType }): string {
   return toastManager.add({
     title: options.title,
@@ -40,13 +46,13 @@ function typeToast(type: ToastType) {
     addToast({ ...rest, title, type })
 }
 
-function resolve(
-  value: React.ReactNode | ((result: any) => React.ReactNode),
+function resolve<Value>(
+  value: React.ReactNode | ((result: Value) => React.ReactNode),
   type: ToastType,
-  description?: React.ReactNode
-): any {
+  description?: React.ReactNode,
+): ((result: Value) => ResolvedToast) | ResolvedToast {
   if (typeof value === "function") {
-    return (result: any) => ({ title: value(result), type, description })
+    return (result: Value): ResolvedToast => ({ title: value(result), type, description })
   }
   return { title: value, type, description }
 }

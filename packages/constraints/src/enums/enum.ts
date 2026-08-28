@@ -11,13 +11,16 @@ export interface EnumItemConfig {
   readonly color: EnumColor
 }
 
-export type EnumItem<K extends string = string> = EnumItemConfig & { readonly key: K }
+export type EnumItem<K extends string = string, V extends number = number> = Omit<
+  EnumItemConfig,
+  'value'
+> & { readonly key: K; readonly value: V }
 
-export interface EnumInstance<K extends string = string> {
-  readonly items: readonly EnumItem<K>[]
+export interface EnumInstance<K extends string = string, V extends number = number> {
+  readonly items: readonly EnumItem<K, V>[]
   readonly keys: readonly K[]
-  readonly values: readonly number[]
-  readonly keyMap: Readonly<Record<K, number>>
+  readonly values: readonly V[]
+  readonly keyMap: Readonly<Record<K, V>>
   readonly valueMap: Readonly<Record<number, K>>
   readonly labelMap: Readonly<Record<number, string>>
   readonly colorMap: Readonly<Record<number, EnumColor>>
@@ -27,19 +30,19 @@ export interface EnumInstance<K extends string = string> {
   getKeyByValue(value: number): K | undefined
   getLabel(value: number): string
   getColor(value: number): EnumColor | undefined
-  hasValue(value: number): value is number
+  hasValue(value: number): value is V
   hasKey(key: K): key is K
-  toOptions(): ReadonlyArray<{ readonly label: string; readonly value: number }>
-  schema(): import('zod').ZodType<number>
+  toOptions(): ReadonlyArray<{ readonly label: string; readonly value: V }>
+  schema(): ZodType<V>
 }
 
-import { z } from 'zod'
+import { z, type ZodType } from 'zod'
 
 export function labelOf(items: readonly EnumItemConfig[], code: number): string | undefined {
   return items.find((item) => item.value === code)?.label
 }
 
-export function codeMap<T extends readonly EnumItemConfig[]>(items: T) {
+export function codeMap<const T extends readonly EnumItemConfig[]>(items: T) {
   return Object.fromEntries(items.map((item) => [item.key, item.value])) as {
     readonly [K in T[number]['key']]: T[number]['value']
   }
@@ -47,9 +50,10 @@ export function codeMap<T extends readonly EnumItemConfig[]>(items: T) {
 
 export function createEnum<const T extends readonly EnumItemConfig[]>(
   items: T,
-): EnumInstance<T[number]['key']> {
+): EnumInstance<T[number]['key'], T[number]['value']> {
+  type Value = T[number]['value']
   const list = items as readonly EnumItem<T[number]['key']>[]
-  const keyMap = Object.fromEntries(list.map((i) => [i.key, i.value])) as Record<T[number]['key'], number>
+  const keyMap = Object.fromEntries(list.map((i) => [i.key, i.value])) as Record<T[number]['key'], Value>
   const valueMap = Object.fromEntries(list.map((i) => [i.value, i.key])) as Record<number, T[number]['key']>
   const labelMap = Object.fromEntries(list.map((i) => [i.value, i.label])) as Record<number, string>
   const colorMap = Object.fromEntries(list.map((i) => [i.value, i.color])) as Record<number, EnumColor>
@@ -74,9 +78,6 @@ export function createEnum<const T extends readonly EnumItemConfig[]>(
     hasKey: (key): key is T[number]['key'] => key in keyMap,
     toOptions: () => list.map((i) => ({ label: i.label, value: i.value })),
     schema: () =>
-      z
-        .number()
-        .int()
-        .refine((v) => valueSet.has(v), { message: '无效的枚举值' }),
+      z.literal(validValues as [Value, ...Value[]], { message: '无效的枚举值' }),
   }
 }

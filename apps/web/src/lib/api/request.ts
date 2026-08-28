@@ -1,3 +1,5 @@
+import type { ApiEnvelope } from "@dextea/constraints"
+
 import { logger } from "@/lib/logger"
 import { clearToken, getToken } from "@/lib/session"
 
@@ -11,20 +13,14 @@ type RequestOptions = Omit<RequestInit, "body" | "headers"> & {
 
 export class ApiError extends Error {
   readonly status: number
-  readonly code?: number
+  readonly code?: string
 
-  constructor(status: number, message: string, code?: number) {
+  constructor(status: number, message: string, code?: string) {
     super(message)
     this.name = "ApiError"
     this.status = status
     this.code = code
   }
-}
-
-interface ApiEnvelope<T> {
-  code: number
-  message: string
-  data: T
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {

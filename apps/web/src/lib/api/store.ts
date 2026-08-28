@@ -1,31 +1,22 @@
-import type { ResetPasswordRequest, UpdateStoreStatusRequest } from "@dextea/constraints"
+import {
+  apiRoutes,
+  type ResetPasswordRequest,
+  type StoreView,
+  type UpdateStoreStatusRequest,
+} from "@dextea/constraints"
 
 import { http } from "./request"
 
-export interface StoreView {
-  id: number
-  name: string
-  province: string
-  city: string
-  district: string
-  address: string
-  status: number
-  businessHours: string
-  phone: string
-  longitude: number
-  latitude: number
-  email: string
-  available: boolean
-}
+export type { StoreView } from "@dextea/constraints"
 
 export const storeApi = {
   getStore(): Promise<StoreView> {
-    return http.get<StoreView>("/api/v1/store/")
+    return http.get<StoreView>(apiRoutes.store.current())
   },
   updateStatus(body: UpdateStoreStatusRequest): Promise<void> {
-    return http.put<void>("/api/v1/store/status", body)
+    return http.put<void>(apiRoutes.store.status(), body)
   },
   resetPassword(body: ResetPasswordRequest): Promise<void> {
-    return http.put<void>("/api/v1/store/password", body)
+    return http.put<void>(apiRoutes.store.password(), body)
   },
 }

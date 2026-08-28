@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ListChecksIcon, Package, RefreshCwIcon, XIcon } from "lucide-react"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -25,6 +25,7 @@ import {
 import {
   ProductStoreStatus,
   customizationOptionStoreStatusCode,
+  type ProductStoreStatusCode,
 } from "@dextea/constraints"
 import {
   productApi,
@@ -36,8 +37,8 @@ import { ApiError } from "@/lib/api/request"
 import { logger } from "@/lib/logger"
 import { toast } from "@/lib/toast"
 
-const STORE_ACTIVE = ProductStoreStatus.getValueByKey("ACTIVE")
-const STORE_DISABLED = ProductStoreStatus.getValueByKey("DISABLED")
+const STORE_ACTIVE = ProductStoreStatus.keyMap.ACTIVE
+const STORE_DISABLED = ProductStoreStatus.keyMap.DISABLED
 
 const OPTION_STORE_ACTIVE = customizationOptionStoreStatusCode.STORE_ACTIVE
 const OPTION_STORE_DISABLED = customizationOptionStoreStatusCode.STORE_DISABLED
@@ -53,7 +54,7 @@ export default function ProductsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [batchMode, setBatchMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
-  const [batchTarget, setBatchTarget] = useState<number | null>(null)
+  const [batchTarget, setBatchTarget] = useState<ProductStoreStatusCode | null>(null)
   const [batchSubmitting, setBatchSubmitting] = useState(false)
   const [customizeTarget, setCustomizeTarget] = useState<ProductView | null>(null)
   const [customizationItems, setCustomizationItems] = useState<CustomizationItemView[]>([])
@@ -80,31 +81,44 @@ export default function ProductsPage() {
   }
 
   useEffect(() => {
-    setLoading(true)
-    loadProducts().finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    if (customizeTarget === null) return
     let cancelled = false
-    setCustomizationsLoading(true)
-    productApi
-      .listCustomizations(customizeTarget.id)
-      .then((data) => {
-        if (!cancelled) setCustomizationItems(data)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        logger.error("获取客制化列表失败", err)
-        toast.error(err instanceof ApiError ? err.message : "获取客制化列表失败")
-      })
-      .finally(() => {
-        if (!cancelled) setCustomizationsLoading(false)
-      })
+    void (async () => {
+      await loadProducts()
+      if (!cancelled) setLoading(false)
+    })()
     return () => {
       cancelled = true
     }
-  }, [customizeTarget])
+  }, [])
+
+  // 客制化弹窗由用户点击触发，拉取放在事件处理中；requestId 用于丢弃过期响应
+  const customizeRequestId = useRef(0)
+
+  async function openCustomize(product: ProductView): Promise<void> {
+    const requestId = customizeRequestId.current + 1
+    customizeRequestId.current = requestId
+
+    setCustomizeTarget(product)
+    setCustomizationItems([])
+    setCustomizationsLoading(true)
+
+    try {
+      const data = await productApi.listCustomizations(product.id)
+      if (requestId !== customizeRequestId.current) return
+      setCustomizationItems(data)
+    } catch (err) {
+      if (requestId !== customizeRequestId.current) return
+      logger.error("获取客制化列表失败", err)
+      toast.error(err instanceof ApiError ? err.message : "获取客制化列表失败")
+    } finally {
+      if (requestId === customizeRequestId.current) setCustomizationsLoading(false)
+    }
+  }
+
+  function closeCustomize(): void {
+    customizeRequestId.current += 1
+    setCustomizeTarget(null)
+  }
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -340,7 +354,7 @@ export default function ProductsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCustomizeTarget(product)}
+                      onClick={() => void openCustomize(product)}
                     >
                       管理客制化
                     </Button>
@@ -381,13 +395,9 @@ export default function ProductsPage() {
                   确定要将「{pending.name}」的门店状态切换为
                   <span className="font-medium text-foreground">
                     {" "}
-                    {pending.storeStatus === ProductStoreStatus.getValueByKey("ACTIVE")
-                      ? ProductStoreStatus.getLabel(
-                          ProductStoreStatus.getValueByKey("DISABLED"),
-                        )
-                      : ProductStoreStatus.getLabel(
-                          ProductStoreStatus.getValueByKey("ACTIVE"),
-                        )}{" "}
+                    {pending.storeStatus === ProductStoreStatus.keyMap.ACTIVE
+                      ? ProductStoreStatus.getLabel(ProductStoreStatus.keyMap.DISABLED)
+                      : ProductStoreStatus.getLabel(ProductStoreStatus.keyMap.ACTIVE)}{" "}
                   </span>
                   吗？
                 </>
@@ -445,7 +455,7 @@ export default function ProductsPage() {
       <Dialog
         open={customizeTarget !== null}
         onOpenChange={(open) => {
-          if (!open) setCustomizeTarget(null)
+          if (!open) closeCustomize()
         }}
       >
         <DialogContent className="sm:max-w-3xl">

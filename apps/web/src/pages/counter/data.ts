@@ -3,7 +3,6 @@ import { OrderMakingStatus, OrderPaymentStatus } from "@dextea/constraints"
 import {
   fetchOrderDetail,
   fetchOrderWindow,
-  type OrderDetailData,
   type OrderWindowItem,
 } from "@/lib/api/orders"
 

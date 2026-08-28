@@ -1,56 +1,48 @@
+import {
+  apiRoutes,
+  type CustomizationItemView,
+  type CustomizationOptionStoreStatusCode,
+  type ProductStoreStatusCode,
+  type ProductView,
+} from "@dextea/constraints"
+
 import { http } from "./request"
 
-export interface ProductView {
-  id: number
-  name: string
-  description: string | null
-  price: number
-  image: string | null
-  status: number
-  storeStatus: number
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CustomizationOptionView {
-  id: number
-  itemId: number
-  name: string
-  price: number
-  sort: number
-  status: number
-  storeStatus: number
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CustomizationItemView {
-  id: number
-  productId: number
-  name: string
-  sort: number
-  status: number
-  options: CustomizationOptionView[]
-  createdAt: string
-  updatedAt: string
-}
+export type {
+  CustomizationItemView,
+  CustomizationOptionView,
+  ProductView,
+} from "@dextea/constraints"
 
 export const productApi = {
   listActive(): Promise<ProductView[]> {
-    return http.get<ProductView[]>("/api/v1/products/")
+    return http.get<ProductView[]>(apiRoutes.product.list())
   },
-  toggleStoreStatus(id: number): Promise<{ storeStatus: number }> {
-    return http.patch<{ storeStatus: number }>(`/api/v1/products/${id}/store-status`, {})
+  toggleStoreStatus(id: number): Promise<{ storeStatus: ProductStoreStatusCode }> {
+    return http.patch<{ storeStatus: ProductStoreStatusCode }>(
+      apiRoutes.product.storeStatus(id),
+    )
   },
-  batchSetStoreStatus(productIds: number[], status: number): Promise<null> {
-    return http.post<null>("/api/v1/products/batch/store-status", { productIds, status })
+  batchSetStoreStatus(
+    productIds: number[],
+    status: ProductStoreStatusCode,
+  ): Promise<null> {
+    return http.post<null>(apiRoutes.product.batchStoreStatus(), {
+      productIds,
+      status,
+    })
   },
   listCustomizations(productId: number): Promise<CustomizationItemView[]> {
-    return http.get<CustomizationItemView[]>(`/api/v1/products/${productId}/customizations`)
+    return http.get<CustomizationItemView[]>(
+      apiRoutes.customization.listByProduct(productId),
+    )
   },
-  updateOptionStoreStatus(optionId: number, status: number): Promise<{ storeStatus: number }> {
-    return http.patch<{ storeStatus: number }>(
-      `/api/v1/products/customizations/options/${optionId}/store-status`,
+  updateOptionStoreStatus(
+    optionId: number,
+    status: CustomizationOptionStoreStatusCode,
+  ): Promise<{ storeStatus: CustomizationOptionStoreStatusCode }> {
+    return http.patch<{ storeStatus: CustomizationOptionStoreStatusCode }>(
+      apiRoutes.customization.optionStoreStatus(optionId),
       { status },
     )
   },
