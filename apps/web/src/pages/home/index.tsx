@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Monitor, Settings, Store } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { storeApi } from "@/lib/api/store"
-import { ApiError } from "@/lib/api/request"
-import { clearToken } from "@/lib/session"
+import { StoreStatus } from "@dextea/constraints"
+import { clearSession } from "@/lib/session"
 import { logger } from "@/lib/logger"
-import { toast } from "@/lib/toast"
+import { useStore } from "@/lib/use-store"
 
 interface Section {
   key: string
@@ -43,30 +41,15 @@ const sections: Section[] = [
 ]
 
 export default function HomePage() {
-  const [storeName, setStoreName] = useState<string | null>(null)
+  const store = useStore()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    let cancelled = false
-    storeApi
-      .getStore()
-      .then((store) => {
-        if (cancelled) return
-        logger.info("获取门店信息成功", store.name)
-        setStoreName(store.name)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        logger.error("获取门店信息失败", err)
-        toast.error(err instanceof ApiError ? err.message : "获取门店信息失败")
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const address = store
+    ? [store.province, store.city, store.district, store.address].filter(Boolean).join("")
+    : ""
 
   function handleLogout() {
-    clearToken()
+    clearSession()
     logger.info("已退出登录")
     navigate("/login", { replace: true })
   }
@@ -74,9 +57,18 @@ export default function HomePage() {
   return (
     <div className="flex min-h-svh flex-col p-6 md:p-10">
       <header className="flex items-start justify-between gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          你好，{storeName ?? "..."}
-        </h1>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            你好，{store ? store.name : "..."}
+          </h1>
+          {store && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+              <span>{StoreStatus.getLabel(store.status)}</span>
+              {address && <span>· {address}</span>}
+              {store.businessHours && <span>· 营业时间 {store.businessHours}</span>}
+            </p>
+          )}
+        </div>
         <Button variant="outline" size="sm" onClick={handleLogout}>
           退出登录
         </Button>

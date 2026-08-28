@@ -5,8 +5,4 @@ declare module 'fastify' {
     storeId?: number
     authToken?: string
   }
-
-  interface FastifyContextConfig {
-    publicRoute?: boolean
-  }
 }

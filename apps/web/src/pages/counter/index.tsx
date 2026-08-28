@@ -4,14 +4,10 @@ import { ArrowLeft, Coffee } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  getOrderDetail,
-  getOrderWindow,
-  storeName,
-  type Order,
-} from "./data"
+import { getOrderDetail, getOrderWindow, type Order } from "./data"
 import { OrderCard } from "./components/OrderCard"
 import { OrderDetail, OrderDetailEmpty } from "./components/OrderDetail"
+import { useStore } from "@/lib/use-store"
 
 const VISIBLE_MAKING_STATUS = [1, 2]
 
@@ -23,6 +19,7 @@ const statusTabs: { key: number | "all"; label: string }[] = [
 
 export default function CounterPage() {
   const navigate = useNavigate()
+  const store = useStore()
   const [tab, setTab] = useState<number | "all">("all")
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [allOrders, setAllOrders] = useState<Order[]>([])
@@ -115,7 +112,7 @@ export default function CounterPage() {
               <Coffee className="size-5" />
             </div>
             <div className="leading-tight">
-              <h1 className="text-base font-semibold">{storeName}</h1>
+              <h1 className="text-base font-semibold">{store ? store.name : "门店"}</h1>
               <p className="text-xs text-muted-foreground">前台订单查看</p>
             </div>
           </div>

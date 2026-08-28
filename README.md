@@ -42,7 +42,6 @@ dextea-store/
 │   │   │   ├── infrastructure/       # 纯技术能力：database / mq / security / external
 │   │   │   ├── interfaces/http/      # 横切 HTTP：鉴权守卫、错误处理、响应包络、插件
 │   │   │   └── shared/               # 通用内核：错误体系、日志、状态映射工具
-│   │   └── test/                     # 契约测试、鉴权测试、服务单测
 │   └── web/                          # 前端 SPA（React + Vite）
 │       └── src/
 │           ├── App.tsx               # 路由
@@ -144,13 +143,10 @@ cp apps/api/.env.example apps/api/.env
 ```bash
 pnpm --filter api run typecheck   # tsc --noEmit（含 strict 与 noUncheckedIndexedAccess）
 pnpm --filter api run lint        # ESLint（含分层依赖约束）
-pnpm --filter api run test        # Vitest：契约测试 + 鉴权测试 + 服务单测
 pnpm --filter web run lint        # 前端静态检查
 ```
 
-其中契约测试会遍历前端实际调用的全部路径并断言不返回 404，用于防止前后端契约再次漂移。
-
-CI 配置见 `.github/workflows/ci.yml`，在 push/PR 时对 api 执行 `typecheck / lint / test / build`，对 web 执行 `lint / build`。
+前端调用的路径常量统一由 `packages/constraints` 的 `apiRoutes` 导出，前后端共用以避免契约漂移。
 
 ## 构建
 

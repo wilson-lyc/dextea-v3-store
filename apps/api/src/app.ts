@@ -20,6 +20,7 @@ import {
   type StoreRepository,
 } from '@/modules/store/store.repository.js'
 import { StoreService } from '@/modules/store/store.service.js'
+import { toStoreView } from '@/modules/store/store.presenter.js'
 import { createStoreRoutes } from '@/modules/store/store.module.js'
 import {
   DrizzleProductRepository,
@@ -50,18 +51,13 @@ interface RegisteredModule {
   plugin: ReturnType<typeof createAuthRoutes>
 }
 
-async function registerApiScope(
+async function registerApiModules(
   app: FastifyInstance,
-  tokenService: TokenService,
   modules: RegisteredModule[],
 ): Promise<void> {
-  await app.register(async (scope) => {
-    registerAuthGuard(scope, tokenService)
-
-    for (const module of modules) {
-      await scope.register(module.plugin, { prefix: module.prefix })
-    }
-  })
+  for (const module of modules) {
+    await app.register(module.plugin, { prefix: module.prefix })
+  }
 }
 
 export async function buildApp(dependencies: AppDependencies = {}): Promise<FastifyInstance> {
@@ -98,15 +94,18 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
   const customizationService = new CustomizationService(customizationRepository)
   const orderService = new OrderService(orderGateway)
 
+  // 注册在插件之后：CORS 预检（OPTIONS）需先于鉴权拦截器处理
+  registerAuthGuard(app, tokenService)
+
   const modules: RegisteredModule[] = [
-    { prefix: '/api/v1/auth', plugin: createAuthRoutes({ authService }) },
+    { prefix: '/api/v1/auth', plugin: createAuthRoutes({ authService, toStoreView }) },
     { prefix: '/api/v1/store', plugin: createStoreRoutes({ storeService }) },
     { prefix: '/api/v1/products', plugin: createProductRoutes({ productService }) },
     { prefix: '/api/v1/products', plugin: createCustomizationRoutes({ customizationService }) },
     { prefix: '/api/v1/store', plugin: createOrderRoutes({ orderService }) },
   ]
 
-  await registerApiScope(app, tokenService, modules)
+  await registerApiModules(app, modules)
 
   app.addHook('onClose', async () => {
     app.log.info('[app] Fastify 应用已关闭')

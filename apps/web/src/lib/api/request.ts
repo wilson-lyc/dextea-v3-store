@@ -1,7 +1,7 @@
 import type { ApiEnvelope } from "@dextea/constraints"
 
 import { logger } from "@/lib/logger"
-import { clearToken, getToken } from "@/lib/session"
+import { clearSession, getToken } from "@/lib/session"
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8296"
@@ -52,8 +52,8 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   }
 
   if (response.status === 401) {
-    logger.warn(`[未授权] ${method} ${path}，清除 Token 并跳转登录页`)
-    clearToken()
+    logger.warn(`[未授权] ${method} ${path}，清除登录状态并跳转登录页`)
+    clearSession()
     if (window.location.pathname !== "/login") {
       window.location.replace("/login")
     }

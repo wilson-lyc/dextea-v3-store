@@ -106,5 +106,3 @@ export async function getOrderDetail(orderId: number): Promise<Order> {
     createdAt: formatCreatedAt(detail.createdAt),
   }
 }
-
-export const storeName = "德贤茶 · 中心广场店"

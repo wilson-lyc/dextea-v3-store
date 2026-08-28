@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { authApi } from "@/lib/api/auth"
 import { ApiError } from "@/lib/api/request"
 import { logger } from "@/lib/logger"
-import { setToken } from "@/lib/session"
+import { setSession } from "@/lib/session"
 
 export default function LoginPage() {
   const [account, setAccount] = useState("")
@@ -29,8 +29,8 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const result = await authApi.login({ account, password })
-      setToken(result.token)
-      logger.info("登录成功", `storeId=${result.storeId}`)
+      setSession(result.token, result.store)
+      logger.info("登录成功", `${result.store.name}(storeId=${result.storeId})`)
       navigate("/", { replace: true })
     } catch (err) {
       logger.warn("登录失败", err)

@@ -21,8 +21,8 @@ export function App() {
             <Route path="settings" element={<StoreSettingsPage />} />
             <Route path="products" element={<ProductsPage />} />
           </Route>
+          <Route path="/counter" element={<CounterPage />} />
         </Route>
-        <Route path="/counter" element={<CounterPage />} />
         <Route path="/screen" element={<PlaceholderPage title="服务大屏" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
