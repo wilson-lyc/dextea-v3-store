@@ -1,12 +1,14 @@
 import { useNavigate } from "react-router-dom"
 import { Monitor, Settings, Store } from "lucide-react"
-
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { StoreStatus } from "@dextea/constraints"
-import { clearSession } from "@/lib/session"
-import { logger } from "@/lib/logger"
-import { useStore } from "@/lib/use-store"
+
+import { Button } from "@/shared/ui/button"
+import { Card, CardContent } from "@/shared/ui/card"
+import { useStore } from "@/app/store-provider"
+import { paths } from "@/router/paths"
+import { clearSession } from "@/features/auth/session"
+import { formatStoreAddress } from "@/features/store/model"
+import { logger } from "@/shared/lib/logger"
 
 interface Section {
   key: string
@@ -22,36 +24,34 @@ const sections: Section[] = [
     title: "后台设置",
     description: "门店信息、商品与员工等基础配置管理",
     icon: Settings,
-    path: "/admin",
+    path: paths.admin.root,
   },
   {
     key: "counter",
     title: "前台服务",
     description: "实时查看门店订单与制作、取餐状态",
     icon: Store,
-    path: "/counter",
+    path: paths.counter,
   },
   {
     key: "screen",
     title: "服务大屏",
     description: "叫号取餐与订单状态的大屏实时展示",
     icon: Monitor,
-    path: "/screen",
+    path: paths.screen,
   },
 ]
 
 export default function HomePage() {
-  const store = useStore()
+  const { store } = useStore()
   const navigate = useNavigate()
 
-  const address = store
-    ? [store.province, store.city, store.district, store.address].filter(Boolean).join("")
-    : ""
+  const address = store ? formatStoreAddress(store) : ""
 
   function handleLogout() {
     clearSession()
     logger.info("已退出登录")
-    navigate("/login", { replace: true })
+    navigate(paths.login, { replace: true })
   }
 
   return (

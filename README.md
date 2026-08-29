@@ -44,10 +44,22 @@ dextea-store/
 │   │   │   └── shared/               # 通用内核：错误体系、日志、状态映射工具
 │   └── web/                          # 前端 SPA（React + Vite）
 │       └── src/
-│           ├── App.tsx               # 路由
-│           ├── components/           # admin-layout、route-guard、theme-provider、ui（shadcn）
-│           ├── lib/                  # api、session、toast、logger
-│           └── pages/                # home、login、admin/products、admin/settings、counter
+│           ├── main.tsx              # 挂载入口（仅 RouterProvider）
+│           ├── router/               # 路由真相源：paths 常量、路由表、守卫
+│           ├── app/                  # 应用级 Provider 组合点（主题、门店、Toaster）
+│           ├── shared/               # 与业务无关的通用能力
+│           │   ├── api/              # http 客户端、错误文案解析、401 事件总线
+│           │   ├── hooks/            # useAsyncData / useMutation / useNow
+│           │   ├── lib/              # cn、日期、日志
+│           │   └── ui/               # shadcn 生成物（由 CLI 维护）
+│           ├── features/             # 按领域聚合，对齐后端 modules/
+│           │   ├── auth/             # 登录、会话存储
+│           │   ├── store/            # 门店档案（应用级共享）
+│           │   ├── product/          # 商品与客制化
+│           │   ├── order/            # 订单看板与详情
+│           │   └── store-settings/   # 营业状态、重置密码
+│           ├── layouts/              # admin 布局等页面外壳
+│           └── pages/                # 只做装配，不含业务逻辑
 └── packages/
     └── constraints/                  # 共享契约包 @dextea/constraints
 ```

@@ -251,6 +251,12 @@ export const OrderDiningMethod = createEnum([
     label: '外带',
     color: { text: '#d97706', background: '#fef3c7', border: '#fde68a' },
   },
+  {
+    key: 'TAKEAWAY_DELIVERY',
+    value: 3,
+    label: '外卖',
+    color: { text: '#1677ff', background: '#e6f4ff', border: '#bae0ff' },
+  },
 ])
 
 export type OrderDiningMethodKey = (typeof OrderDiningMethod.items)[number]['key']
