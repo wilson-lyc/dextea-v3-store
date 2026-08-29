@@ -113,10 +113,50 @@ cp apps/api/.env.example apps/api/.env
 | `DB_PASSWORD` | 否 | — | 数据库密码 |
 | `JWT_SECRET` | **是** | — | 生产环境至少 16 位 |
 | `JWT_EXPIRES_IN` | 否 | `7d` | 令牌有效期 |
-| `ORDER_SERVICE_BASE_URL` | **是** | — | 订单微服务地址，如 `http://localhost:8300` |
+| `ORDER_SERVICE_BASE_URL` | 条件必填 | — | 订单微服务地址，如 `http://localhost:8300`；`NACOS_ENABLED=false` 时必填，启用服务发现后忽略 |
+| `ORDER_SERVICE_NAME` | 否 | `order-service` | 订单微服务在 Nacos 中注册的服务名 |
+| `ORDER_SERVICE_SCHEME` | 否 | `http` | 实例元数据未声明 `scheme` 时使用的 `http` / `https` |
+| `NACOS_ENABLED` | 否 | `false` | 是否启用 Nacos 服务发现（仅服务发现，不使用配置中心） |
+| `NACOS_SERVER_ADDR` | 条件必填 | — | Nacos 地址，`host:port`，多个用逗号分隔；`NACOS_ENABLED=true` 时必填 |
+| `NACOS_NAMESPACE` | 否 | `public` | Nacos 命名空间 ID |
+| `NACOS_GROUP` | 否 | `DEFAULT_GROUP` | Nacos 分组名 |
+| `NACOS_CLUSTERS` | 否 | — | 限定集群，留空表示不限 |
+| `NACOS_USERNAME` `NACOS_PASSWORD` | 否 | — | Nacos 开启了鉴权时填写 |
 | `ORDER_MAKING_MQ_*` | 否 | — | 制单 MQ，默认关闭 |
 
-> 说明：旧版本中的 `REDIS_*` 与 `NACOS_*` 配置已移除——对应的客户端在本服务中从未被使用，却强制要求配置并占用连接。
+> 说明：旧版本中的 `REDIS_*` 与 `NACOS_*` 配置已移除——对应的客户端在本服务中从未被使用，却强制要求配置并占用连接。当前 `NACOS_*` 为服务发现重新引入。
+
+### 服务注册与发现（Nacos）
+
+订单微服务不做 IP 硬编码，地址按以下优先级确定：
+
+1. `NACOS_ENABLED=true`：启动时连接 Nacos 并订阅订单服务，每次调用前从本地缓存的实例表中按**权重随机**挑一个健康实例，拼出请求地址；实例上下线由 Nacos 推送 + 定时拉取自动生效，无需重启。
+2. `NACOS_ENABLED=false`：回落到 `ORDER_SERVICE_BASE_URL`（本地开发或无注册中心时的兜底）。
+
+拼装规则：`{scheme}://{ip}:{port}`。`scheme` 取自实例元数据的 `scheme`（仅识别 `http` / `https`，缺省用 `ORDER_SERVICE_SCHEME`）。不健康、未启用、权重为 0 的实例由 SDK 的 `selectInstances(healthy=true)` 过滤，本服务不再重复判断。
+
+找不到可用实例或 Nacos 查询失败时，订单接口返回 502（`ORDER_SERVICE_UNAVAILABLE`），并在日志中记录具体原因；Nacos 恢复后无需重启即自动恢复。
+
+#### 实例变更的感知方式
+
+2.6.3 通过**服务端 UDP 推送**接收实例变更，同时以 `cacheMillis`（服务端下发，通常 10s）为周期定时拉取兜底。UDP 端口不通时不会报错，只是实例上下线感知延迟从"近实时"退化为"一个轮询周期"，功能不受影响。容器部署若需近实时感知，放行客户端到服务端 UDP 方向即可。
+
+#### SDK 版本约束（升级前必读）
+
+`nacos@2.6.3` 是当前 npm 上的最新版，**仅支持 HTTP 传输**，这正是本项目需要的。但上游 GitHub master 已改造为**默认 gRPC**（`transport: 'http'` 需显式指定，且 Nacos 3.x 已移除 HTTP API）。因此：
+
+- **不要盲目升级** `nacos` 依赖。若新版本默认 gRPC，而服务端是 Nacos 2.x，会静默连不上。
+- 若将来要迁到 Nacos Server 3.x，需同步切到支持 gRPC 的 SDK 版本，并确认服务端版本与传输方式匹配。
+- 届时 master 提供 `selectOneHealthyInstance`（内置加权随机），可替换掉本服务 `service-discovery.ts` 里的 `pickByWeight`。
+
+实现位置：
+
+| 文件 | 职责 |
+| --- | --- |
+| `apps/api/src/infrastructure/nacos/naming-client.ts` | `NacosNamingClient` 单例的连接、就绪与关闭 |
+| `apps/api/src/infrastructure/nacos/service-discovery.ts` | 加权随机、地址拼装（实例过滤交给 SDK） |
+| `apps/api/src/infrastructure/external/order-endpoint.resolver.ts` | 按配置选择 Nacos 解析或静态地址 |
+| `apps/api/src/modules/order/order.endpoint-resolver.ts` | 领域层定义的地址解析端口 |
 
 ## 接口约定
 

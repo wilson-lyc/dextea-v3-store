@@ -31,6 +31,7 @@
     "fastify-type-provider-zod": "^7.0.0",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.23.2",
+    "nacos": "^2.6.3",
     "pino": "^10.3.0",
     "rocketmq-client-nodejs": "^1.0.7",
     "zod": "^4.4.3"

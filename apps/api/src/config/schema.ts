@@ -7,6 +7,26 @@ function booleanFromEnv(defaultValue: 'true' | 'false' = 'false') {
     .transform((value) => value === 'true')
 }
 
+function optionalUrl() {
+  return z.preprocess((value) => {
+    if (typeof value !== 'string') {
+      return undefined
+    }
+    const trimmed = value.trim()
+    return trimmed === '' ? undefined : trimmed
+  }, z.url().optional())
+}
+
+const nacosEnvSchema = z.object({
+  NACOS_ENABLED: booleanFromEnv(),
+  NACOS_SERVER_ADDR: z.string().default(''),
+  NACOS_NAMESPACE: z.string().default('public'),
+  NACOS_GROUP: z.string().default('DEFAULT_GROUP'),
+  NACOS_CLUSTERS: z.string().default(''),
+  NACOS_USERNAME: z.string().default(''),
+  NACOS_PASSWORD: z.string().default(''),
+})
+
 const mqEnvSchema = z.object({
   ORDER_MAKING_MQ_ENABLED: booleanFromEnv(),
   ORDER_MAKING_MQ_ENDPOINTS: z.string().default(''),
@@ -37,8 +57,11 @@ export const envSchema = z
     JWT_SECRET: z.string().min(1),
     JWT_EXPIRES_IN: z.string().min(1).default('7d'),
 
-    ORDER_SERVICE_BASE_URL: z.url(),
+    ORDER_SERVICE_NAME: z.string().min(1).default('order-service'),
+    ORDER_SERVICE_SCHEME: z.enum(['http', 'https']).default('http'),
+    ORDER_SERVICE_BASE_URL: optionalUrl(),
 
+    ...nacosEnvSchema.shape,
     ...mqEnvSchema.shape,
   })
   .superRefine((env, ctx) => {
@@ -47,6 +70,22 @@ export const envSchema = z
         code: 'custom',
         path: ['JWT_SECRET'],
         message: '生产环境下 JWT_SECRET 至少需要 16 个字符',
+      })
+    }
+
+    if (env.NACOS_ENABLED && env.NACOS_SERVER_ADDR.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['NACOS_SERVER_ADDR'],
+        message: '启用 Nacos 服务发现时必须配置 NACOS_SERVER_ADDR，例如 127.0.0.1:8848',
+      })
+    }
+
+    if (!env.NACOS_ENABLED && !env.ORDER_SERVICE_BASE_URL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ORDER_SERVICE_BASE_URL'],
+        message: '未启用 Nacos 服务发现时必须配置 ORDER_SERVICE_BASE_URL',
       })
     }
   })

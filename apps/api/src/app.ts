@@ -36,13 +36,16 @@ import { CustomizationService } from '@/modules/customization/customization.serv
 import { createCustomizationRoutes } from '@/modules/customization/customization.module.js'
 import { OrderService } from '@/modules/order/order.service.js'
 import { createOrderRoutes } from '@/modules/order/order.module.js'
+import { createOrderServiceEndpointResolver } from '@/infrastructure/external/order-endpoint.resolver.js'
 import type { OrderGateway } from '@/modules/order/order.gateway.js'
+import type { OrderServiceEndpointResolver } from '@/modules/order/order.endpoint-resolver.js'
 
 export interface AppDependencies {
   storeRepository?: StoreRepository
   productRepository?: ProductRepository
   customizationRepository?: CustomizationRepository
   orderGateway?: OrderGateway
+  orderEndpointResolver?: OrderServiceEndpointResolver
   tokenService?: TokenService
 }
 
@@ -85,7 +88,9 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
   const customizationRepository =
     dependencies.customizationRepository ??
     new DrizzleCustomizationRepository(getDatabase())
-  const orderGateway = dependencies.orderGateway ?? new HttpOrderGateway()
+  const orderEndpointResolver =
+    dependencies.orderEndpointResolver ?? createOrderServiceEndpointResolver()
+  const orderGateway = dependencies.orderGateway ?? new HttpOrderGateway(orderEndpointResolver)
 
   const tokenService = dependencies.tokenService ?? new JwtTokenService()
   const authService = new StoreCredentialsAuthService(storeRepository, tokenService)

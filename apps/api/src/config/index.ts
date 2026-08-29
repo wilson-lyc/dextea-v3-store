@@ -9,6 +9,22 @@ if (process.env.NODE_ENV !== 'test') {
   dotenv.config({ path: resolvePath(currentDirectory, '../../.env') })
 }
 
+export interface NacosConfig {
+  enabled: boolean
+  serverList: string[]
+  namespace: string
+  group: string
+  clusters: string
+  username: string | undefined
+  password: string | undefined
+}
+
+export interface OrderServiceConfig {
+  serviceName: string
+  scheme: 'http' | 'https'
+  baseUrl: string | undefined
+}
+
 export interface MqConfig {
   enabled: boolean
   endpoints: string
@@ -43,9 +59,8 @@ export interface AppConfig {
     secret: string
     expiresIn: string
   }
-  orderService: {
-    baseUrl: string
-  }
+  orderService: OrderServiceConfig
+  nacos: NacosConfig
   mq: {
     orderMaking: MqConfig
   }
@@ -56,6 +71,13 @@ export class ConfigurationError extends Error {
     super(message)
     this.name = 'ConfigurationError'
   }
+}
+
+function splitServerList(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '')
 }
 
 function parseEnv(): Env {
@@ -97,7 +119,18 @@ function buildConfig(env: Env): AppConfig {
       expiresIn: env.JWT_EXPIRES_IN,
     },
     orderService: {
-      baseUrl: env.ORDER_SERVICE_BASE_URL,
+      serviceName: env.ORDER_SERVICE_NAME.trim(),
+      scheme: env.ORDER_SERVICE_SCHEME,
+      baseUrl: env.ORDER_SERVICE_BASE_URL?.replace(/\/+$/, ''),
+    },
+    nacos: {
+      enabled: env.NACOS_ENABLED,
+      serverList: splitServerList(env.NACOS_SERVER_ADDR),
+      namespace: env.NACOS_NAMESPACE.trim() || 'public',
+      group: env.NACOS_GROUP.trim() || 'DEFAULT_GROUP',
+      clusters: env.NACOS_CLUSTERS.trim(),
+      username: env.NACOS_USERNAME.trim() || undefined,
+      password: env.NACOS_PASSWORD.trim() || undefined,
     },
     mq: {
       orderMaking: {
