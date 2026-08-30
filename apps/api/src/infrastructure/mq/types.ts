@@ -11,7 +11,9 @@ export interface MqMessage {
   deliveryTimestamp?: Date
 }
 
-export type MqMessageHandler = (message: MessageView) => ConsumeResult | Promise<ConsumeResult>
+export type MqMessageHandler = (
+  message: MessageView
+) => ConsumeResult | Promise<ConsumeResult>
 
 export interface MqSubscription {
   topic: string

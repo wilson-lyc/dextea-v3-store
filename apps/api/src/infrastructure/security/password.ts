@@ -3,7 +3,7 @@ import { getLogger } from '@/shared/logger.js'
 
 export async function verifyPassword(
   plaintextPassword: string,
-  storedHash: string,
+  storedHash: string
 ): Promise<boolean> {
   try {
     return await argon2.verify(storedHash, plaintextPassword)

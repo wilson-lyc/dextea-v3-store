@@ -18,9 +18,9 @@ function pathMatches(rule: PublicRouteRule, path: string): boolean {
 export function isPublicRequest(
   method: string,
   path: string,
-  rules: readonly PublicRouteRule[] = publicRoutes,
+  rules: readonly PublicRouteRule[] = publicRoutes
 ): boolean {
   return rules.some(
-    (rule) => (rule.method === '*' || rule.method === method) && pathMatches(rule, path),
+    (rule) => (rule.method === '*' || rule.method === method) && pathMatches(rule, path)
   )
 }

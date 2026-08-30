@@ -7,9 +7,10 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores([
     'dist',
-    'drizzle',
-    'src/infrastructure/database/schema',
-    fileURLToPath(new URL('./src/infrastructure/database/schema', import.meta.url)),
+    'src/infrastructure/database/schema.ts',
+    'src/infrastructure/database/relations.ts',
+    fileURLToPath(new URL('./src/infrastructure/database/schema.ts', import.meta.url)),
+    fileURLToPath(new URL('./src/infrastructure/database/relations.ts', import.meta.url)),
   ]),
   {
     files: ['**/*.ts'],

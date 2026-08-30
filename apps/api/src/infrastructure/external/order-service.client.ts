@@ -38,54 +38,66 @@ export class HttpOrderGateway implements OrderGateway {
   public constructor(private readonly endpointResolver: OrderServiceEndpointResolver) {}
 
   public async getOrderWindow(request: OrderGatewayRequest): Promise<OrderWindowData> {
-    const payload = await this.request(request, '/api/v1/store/orders/window?hours=3', 'GET')
+    const payload = await this.request(
+      request,
+      '/api/v1/store/orders/window?hours=3',
+      'GET'
+    )
     return this.parseUpstream<OrderWindowData>(
       orderWindowResponseSchema,
       payload,
-      'GET /orders/window',
+      'GET /orders/window'
     )
   }
 
   public async getOrderDetail(
     request: OrderGatewayRequest,
-    orderId: number,
+    orderId: number
   ): Promise<OrderDetailData> {
     const payload = await this.request(request, `/api/v1/store/orders/${orderId}`, 'GET')
     return this.parseUpstream<OrderDetailData>(
       orderDetailResponseSchema,
       payload,
-      `GET /orders/${orderId}`,
+      `GET /orders/${orderId}`
     )
   }
 
   public async markOrderReady(
     request: OrderGatewayRequest,
-    orderId: number,
+    orderId: number
   ): Promise<OrderDetailData> {
-    const payload = await this.request(request, `/api/v1/store/orders/${orderId}/ready`, 'POST')
+    const payload = await this.request(
+      request,
+      `/api/v1/store/orders/${orderId}/ready`,
+      'POST'
+    )
     return this.parseUpstream<OrderDetailData>(
       orderDetailResponseSchema,
       payload,
-      `POST /orders/${orderId}/ready`,
+      `POST /orders/${orderId}/ready`
     )
   }
 
   public async markOrderCollected(
     request: OrderGatewayRequest,
-    orderId: number,
+    orderId: number
   ): Promise<OrderDetailData> {
-    const payload = await this.request(request, `/api/v1/store/orders/${orderId}/collect`, 'POST')
+    const payload = await this.request(
+      request,
+      `/api/v1/store/orders/${orderId}/collect`,
+      'POST'
+    )
     return this.parseUpstream<OrderDetailData>(
       orderDetailResponseSchema,
       payload,
-      `POST /orders/${orderId}/collect`,
+      `POST /orders/${orderId}/collect`
     )
   }
 
   private parseUpstream<T>(
     schema: z.ZodType<UpstreamEnvelopeShape<T>>,
     payload: unknown,
-    context: string,
+    context: string
   ): T {
     const parsed = schema.safeParse(payload)
 
@@ -104,7 +116,7 @@ export class HttpOrderGateway implements OrderGateway {
   private async request(
     request: OrderGatewayRequest,
     path: string,
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST'
   ): Promise<unknown> {
     const baseUrl = await this.resolveBaseUrl()
     const target = `${baseUrl}${path}`
@@ -127,7 +139,10 @@ export class HttpOrderGateway implements OrderGateway {
         ...(method === 'POST' ? { body: '{}' } : {}),
       })
     } catch (error) {
-      this.logger.error({ error, context: path, target }, '[order-gateway] 调用订单微服务失败')
+      this.logger.error(
+        { error, context: path, target },
+        '[order-gateway] 调用订单微服务失败'
+      )
 
       if (error instanceof UpstreamServiceError) {
         throw error
@@ -137,7 +152,9 @@ export class HttpOrderGateway implements OrderGateway {
     }
 
     if (!response.ok) {
-      this.logger.error(`[order-gateway] 订单微服务返回 ${response.status} ${method} ${path}`)
+      this.logger.error(
+        `[order-gateway] 订单微服务返回 ${response.status} ${method} ${path}`
+      )
       throw new UpstreamServiceError('order-service', response.status, '订单服务响应异常')
     }
 
@@ -149,7 +166,10 @@ export class HttpOrderGateway implements OrderGateway {
       return await this.endpointResolver.resolveBaseUrl()
     } catch (error) {
       if (error instanceof OrderServiceEndpointUnavailableError) {
-        this.logger.error({ reason: error.message }, '[order-gateway] 未解析到订单微服务实例')
+        this.logger.error(
+          { reason: error.message },
+          '[order-gateway] 未解析到订单微服务实例'
+        )
         throw new UpstreamServiceError('order-service', undefined, '订单服务实例不可用')
       }
 

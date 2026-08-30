@@ -15,7 +15,7 @@ import {
   customizationItems,
   customizationOptionStoreStatus,
   customizationOptions,
-} from '@/infrastructure/database/schema/customizations.js'
+} from '@/infrastructure/database/schema.js'
 import { buildStoreStatusMap } from '@/shared/store-status.js'
 import { CustomizationItem, CustomizationOption } from './customization.model.js'
 
@@ -24,28 +24,30 @@ export interface CustomizationRepository {
   findActiveOptionsByItemIds(itemIds: readonly number[]): Promise<CustomizationOption[]>
   findOptionStoreStatusByStoreId(
     storeId: number,
-    optionIds: readonly number[],
+    optionIds: readonly number[]
   ): Promise<Map<number, CustomizationOptionStoreStatusCode>>
   findOptionById(optionId: number): Promise<CustomizationOption | null>
   upsertOptionStoreStatus(
     optionId: number,
     storeId: number,
-    status: CustomizationOptionStoreStatusCode,
+    status: CustomizationOptionStoreStatusCode
   ): Promise<void>
 }
 
 export class DrizzleCustomizationRepository implements CustomizationRepository {
   public constructor(private readonly db: Database) {}
 
-  public async findActiveItemsByProductId(productId: number): Promise<CustomizationItem[]> {
+  public async findActiveItemsByProductId(
+    productId: number
+  ): Promise<CustomizationItem[]> {
     const rows = await this.db
       .select()
       .from(customizationItems)
       .where(
         and(
           eq(customizationItems.productId, productId),
-          eq(customizationItems.status, customizationItemStatusCode.ITEM_ACTIVE),
-        ),
+          eq(customizationItems.status, customizationItemStatusCode.ITEM_ACTIVE)
+        )
       )
       .orderBy(customizationItems.sort, customizationItems.id)
 
@@ -53,7 +55,7 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
   }
 
   public async findActiveOptionsByItemIds(
-    itemIds: readonly number[],
+    itemIds: readonly number[]
   ): Promise<CustomizationOption[]> {
     if (itemIds.length === 0) {
       return []
@@ -65,8 +67,11 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
       .where(
         and(
           inArray(customizationOptions.itemId, [...itemIds]),
-          eq(customizationOptions.status, customizationOptionGlobalStatusCode.GLOBAL_ACTIVE),
-        ),
+          eq(
+            customizationOptions.status,
+            customizationOptionGlobalStatusCode.GLOBAL_ACTIVE
+          )
+        )
       )
       .orderBy(customizationOptions.sort, customizationOptions.id)
 
@@ -75,7 +80,7 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
 
   public async findOptionStoreStatusByStoreId(
     storeId: number,
-    optionIds: readonly number[],
+    optionIds: readonly number[]
   ): Promise<Map<number, CustomizationOptionStoreStatusCode>> {
     if (optionIds.length === 0) {
       return new Map()
@@ -87,15 +92,15 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
       .where(
         and(
           eq(customizationOptionStoreStatus.storeId, storeId),
-          inArray(customizationOptionStoreStatus.optionId, [...optionIds]),
-        ),
+          inArray(customizationOptionStoreStatus.optionId, [...optionIds])
+        )
       )
 
     return buildStoreStatusMap<CustomizationOptionStoreStatusCode>(
       optionIds,
       customizationOptionStoreStatusCode.STORE_DISABLED,
       rows.map((row) => [Number(row.optionId), row.status] as const),
-      (raw) => CustomizationOptionStoreStatus.schema().parse(raw),
+      (raw) => CustomizationOptionStoreStatus.schema().parse(raw)
     )
   }
 
@@ -112,7 +117,7 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
   public async upsertOptionStoreStatus(
     optionId: number,
     storeId: number,
-    status: CustomizationOptionStoreStatusCode,
+    status: CustomizationOptionStoreStatusCode
   ): Promise<void> {
     await this.db
       .insert(customizationOptionStoreStatus)
@@ -128,11 +133,13 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
       row.sort,
       CustomizationItemStatus.schema().parse(row.status) as CustomizationItemStatusCode,
       row.createdAt,
-      row.updatedAt,
+      row.updatedAt
     )
   }
 
-  private toOptionModel(row: typeof customizationOptions.$inferSelect): CustomizationOption {
+  private toOptionModel(
+    row: typeof customizationOptions.$inferSelect
+  ): CustomizationOption {
     return new CustomizationOption(
       row.id,
       row.itemId,
@@ -140,10 +147,10 @@ export class DrizzleCustomizationRepository implements CustomizationRepository {
       Number(row.price),
       row.sort,
       CustomizationOptionGlobalStatus.schema().parse(
-        row.status,
+        row.status
       ) as CustomizationOptionGlobalStatusCode,
       row.createdAt,
-      row.updatedAt,
+      row.updatedAt
     )
   }
 }

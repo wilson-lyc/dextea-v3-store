@@ -26,7 +26,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
     if (isResponseSerializationError(error)) {
       logger.error(
         { err: error.cause, method: error.method, url: error.url },
-        '[http] 响应序列化失败',
+        '[http] 响应序列化失败'
       )
       const internal = commonErrors.INTERNAL_ERROR
       return reply.code(internal.status).send(failure(internal.code, internal.message))

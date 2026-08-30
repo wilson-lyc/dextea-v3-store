@@ -51,7 +51,10 @@ export function createMqClient(options: {
 
   const subscriptionMap = new Map<string, FilterExpression | string>()
   for (const subscription of subscriptions) {
-    subscriptionMap.set(subscription.topic, subscription.expression ?? FilterExpression.SUB_ALL)
+    subscriptionMap.set(
+      subscription.topic,
+      subscription.expression ?? FilterExpression.SUB_ALL
+    )
   }
 
   const consumer = new PushConsumer({
@@ -87,7 +90,7 @@ export function createMqClient(options: {
 export function sendMqMessage(
   producer: Producer,
   topic: string,
-  message: MqMessage,
+  message: MqMessage
 ): Promise<SendReceipt> {
   const options = toMessageOptions(message)
   options.topic = topic

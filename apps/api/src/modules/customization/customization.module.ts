@@ -9,7 +9,10 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { requireStoreId } from '@/interfaces/http/store-context.js'
 import { success } from '@/interfaces/http/response.js'
-import { toCustomizationItemView, toCustomizationOptionView } from './customization.presenter.js'
+import {
+  toCustomizationItemView,
+  toCustomizationOptionView,
+} from './customization.presenter.js'
 import type { CustomizationService } from './customization.service.js'
 
 const productIdParamsSchema = z.object({
@@ -22,7 +25,7 @@ const optionIdParamsSchema = z.object({
 
 const itemListResponseSchema = apiEnvelopeSchema(z.array(customizationItemViewSchema))
 const storeStatusResponseSchema = apiEnvelopeSchema(
-  z.object({ storeStatus: CustomizationOptionStoreStatus.schema() }),
+  z.object({ storeStatus: CustomizationOptionStoreStatus.schema() })
 )
 
 export interface CustomizationModuleOptions {
@@ -30,7 +33,7 @@ export interface CustomizationModuleOptions {
 }
 
 export function createCustomizationRoutes(
-  options: CustomizationModuleOptions,
+  options: CustomizationModuleOptions
 ): FastifyPluginAsyncZod {
   const { customizationService } = options
 
@@ -46,7 +49,7 @@ export function createCustomizationRoutes(
       async (request, reply) => {
         const items = await customizationService.listByProductAndStore(
           request.params.productId,
-          requireStoreId(request),
+          requireStoreId(request)
         )
 
         return reply.send(
@@ -55,13 +58,13 @@ export function createCustomizationRoutes(
               toCustomizationItemView(
                 entry.item,
                 entry.options.map((option) =>
-                  toCustomizationOptionView(option.option, option.storeStatus),
-                ),
-              ),
-            ),
-          ),
+                  toCustomizationOptionView(option.option, option.storeStatus)
+                )
+              )
+            )
+          )
         )
-      },
+      }
     )
 
     app.patch(
@@ -77,11 +80,11 @@ export function createCustomizationRoutes(
         const storeStatus = await customizationService.updateOptionStoreStatus(
           request.params.optionId,
           requireStoreId(request),
-          request.body.status,
+          request.body.status
         )
 
         return reply.send(success({ storeStatus }))
-      },
+      }
     )
   }
 }

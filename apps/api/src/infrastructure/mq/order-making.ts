@@ -49,6 +49,10 @@ export async function publishOrderMakingMessage(message: MqMessage): Promise<str
   if (!client) {
     throw new Error('[MQ:order-making] client not started')
   }
-  const receipt = await sendMqMessage(client.producer, getConfig().mq.orderMaking.topic, message)
+  const receipt = await sendMqMessage(
+    client.producer,
+    getConfig().mq.orderMaking.topic,
+    message
+  )
   return receipt.messageId
 }

@@ -28,7 +28,7 @@ export function createStoreRoutes(options: StoreModuleOptions): FastifyPluginAsy
       async (request, reply) => {
         const store = await storeService.getById(requireStoreId(request))
         return reply.send(success(toStoreView(store)))
-      },
+      }
     )
 
     app.put(
@@ -42,7 +42,7 @@ export function createStoreRoutes(options: StoreModuleOptions): FastifyPluginAsy
       async (request, reply) => {
         await storeService.updateStatus(requireStoreId(request), request.body.status)
         return reply.send(success(null))
-      },
+      }
     )
 
     app.put(
@@ -56,7 +56,7 @@ export function createStoreRoutes(options: StoreModuleOptions): FastifyPluginAsy
       async (request, reply) => {
         await storeService.resetPassword(requireStoreId(request), request.body)
         return reply.send(success(null))
-      },
+      }
     )
   }
 }

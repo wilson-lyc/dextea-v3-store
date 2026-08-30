@@ -12,7 +12,7 @@ import { toProductView } from './product.presenter.js'
 import type { ProductService } from './product.service.js'
 
 const storeStatusResponseSchema = apiEnvelopeSchema(
-  z.object({ storeStatus: ProductStoreStatus.schema() }),
+  z.object({ storeStatus: ProductStoreStatus.schema() })
 )
 const productIdParamsSchema = z.object({
   productId: z.coerce.number().int().positive({ message: '商品ID无效' }),
@@ -24,7 +24,9 @@ export interface ProductModuleOptions {
   productService: ProductService
 }
 
-export function createProductRoutes(options: ProductModuleOptions): FastifyPluginAsyncZod {
+export function createProductRoutes(
+  options: ProductModuleOptions
+): FastifyPluginAsyncZod {
   const { productService } = options
 
   return async (app) => {
@@ -33,8 +35,10 @@ export function createProductRoutes(options: ProductModuleOptions): FastifyPlugi
       { schema: { response: { 200: productListResponseSchema } } },
       async (request, reply) => {
         const items = await productService.listActiveByStore(requireStoreId(request))
-        return reply.send(success(items.map((item) => toProductView(item.product, item.storeStatus))))
-      },
+        return reply.send(
+          success(items.map((item) => toProductView(item.product, item.storeStatus)))
+        )
+      }
     )
 
     app.patch(
@@ -48,10 +52,10 @@ export function createProductRoutes(options: ProductModuleOptions): FastifyPlugi
       async (request, reply) => {
         const storeStatus = await productService.toggleStoreStatus(
           requireStoreId(request),
-          request.params.productId,
+          request.params.productId
         )
         return reply.send(success({ storeStatus }))
-      },
+      }
     )
 
     app.post(
@@ -64,9 +68,13 @@ export function createProductRoutes(options: ProductModuleOptions): FastifyPlugi
       },
       async (request, reply) => {
         const { productIds, status } = request.body
-        await productService.batchSetStoreStatus(requireStoreId(request), productIds, status)
+        await productService.batchSetStoreStatus(
+          requireStoreId(request),
+          productIds,
+          status
+        )
         return reply.send(success(null))
-      },
+      }
     )
   }
 }

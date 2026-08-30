@@ -25,7 +25,7 @@ export class CustomizationService {
 
   public async listByProductAndStore(
     productId: number,
-    storeId: number,
+    storeId: number
   ): Promise<CustomizationItemWithOptions[]> {
     const items = await this.customizationRepository.findActiveItemsByProductId(productId)
 
@@ -34,20 +34,22 @@ export class CustomizationService {
     }
 
     const options = await this.customizationRepository.findActiveOptionsByItemIds(
-      items.map((item) => item.id),
+      items.map((item) => item.id)
     )
 
-    const storeStatusMap = await this.customizationRepository.findOptionStoreStatusByStoreId(
-      storeId,
-      options.map((option) => option.id),
-    )
+    const storeStatusMap =
+      await this.customizationRepository.findOptionStoreStatusByStoreId(
+        storeId,
+        options.map((option) => option.id)
+      )
 
     const optionsByItemId = new Map<number, CustomizationOptionWithStoreStatus[]>()
     for (const option of options) {
       const entry: CustomizationOptionWithStoreStatus = {
         option,
         storeStatus:
-          storeStatusMap.get(option.id) ?? customizationOptionStoreStatusCode.STORE_DISABLED,
+          storeStatusMap.get(option.id) ??
+          customizationOptionStoreStatusCode.STORE_DISABLED,
       }
 
       const list = optionsByItemId.get(option.itemId)
@@ -67,7 +69,7 @@ export class CustomizationService {
   public async updateOptionStoreStatus(
     optionId: number,
     storeId: number,
-    status: CustomizationOptionStoreStatusCode,
+    status: CustomizationOptionStoreStatusCode
   ): Promise<CustomizationOptionStoreStatusCode> {
     const option = await this.customizationRepository.findOptionById(optionId)
 
@@ -77,7 +79,10 @@ export class CustomizationService {
 
     await this.customizationRepository.upsertOptionStoreStatus(optionId, storeId, status)
 
-    this.logger.info({ optionId, storeId, status }, '[customization] 客制化选项门店状态已更新')
+    this.logger.info(
+      { optionId, storeId, status },
+      '[customization] 客制化选项门店状态已更新'
+    )
 
     return status
   }

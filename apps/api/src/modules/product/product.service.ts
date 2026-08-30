@@ -1,7 +1,4 @@
-import {
-  productStoreStatusCode,
-  type ProductStoreStatusCode,
-} from '@dextea/constraints'
+import { productStoreStatusCode, type ProductStoreStatusCode } from '@dextea/constraints'
 import { getLogger } from '@/shared/logger.js'
 import type { Product } from './product.model.js'
 import type { ProductRepository } from './product.repository.js'
@@ -20,7 +17,7 @@ export class ProductService {
     const products = await this.productRepository.findGloballyActive()
     const storeStatusMap = await this.productRepository.findStoreStatusByStoreId(
       storeId,
-      products.map((product) => product.id),
+      products.map((product) => product.id)
     )
 
     return products.map((product) => ({
@@ -32,9 +29,11 @@ export class ProductService {
 
   public async toggleStoreStatus(
     storeId: number,
-    productId: number,
+    productId: number
   ): Promise<ProductStoreStatusCode> {
-    const current = await this.productRepository.findStoreStatusByStoreId(storeId, [productId])
+    const current = await this.productRepository.findStoreStatusByStoreId(storeId, [
+      productId,
+    ])
     const next =
       current.get(productId) === productStoreStatusCode.STORE_ACTIVE
         ? productStoreStatusCode.STORE_DISABLED
@@ -50,13 +49,13 @@ export class ProductService {
   public async batchSetStoreStatus(
     storeId: number,
     productIds: readonly number[],
-    status: ProductStoreStatusCode,
+    status: ProductStoreStatusCode
   ): Promise<void> {
     await this.productRepository.batchSetStoreStatus(storeId, productIds, status)
 
     this.logger.info(
       { storeId, count: productIds.length, status },
-      '[product] 商品门店状态已批量更新',
+      '[product] 商品门店状态已批量更新'
     )
   }
 }

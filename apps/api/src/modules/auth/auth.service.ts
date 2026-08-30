@@ -21,7 +21,7 @@ export class StoreCredentialsAuthService implements AuthService {
 
   public constructor(
     private readonly storeRepository: StoreRepository,
-    private readonly tokenService: TokenService,
+    private readonly tokenService: TokenService
   ) {}
 
   public async login(input: LoginRequest): Promise<AuthenticatedStore> {
@@ -42,7 +42,10 @@ export class StoreCredentialsAuthService implements AuthService {
     return { store, token }
   }
 
-  private async passwordMatches(plaintextPassword: string, storedHash: string): Promise<boolean> {
+  private async passwordMatches(
+    plaintextPassword: string,
+    storedHash: string
+  ): Promise<boolean> {
     try {
       return await verifyPassword(plaintextPassword, storedHash)
     } catch (error) {

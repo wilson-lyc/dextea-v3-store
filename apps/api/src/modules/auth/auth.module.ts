@@ -34,9 +34,9 @@ export function createAuthRoutes(options: AuthModuleOptions): FastifyPluginAsync
             storeId: String(store.id),
             token,
             store: toStoreView(store),
-          }),
+          })
         )
-      },
+      }
     )
   }
 }

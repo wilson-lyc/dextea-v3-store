@@ -2,7 +2,7 @@ import mysql from 'mysql2/promise'
 import { drizzle, type MySql2Database } from 'drizzle-orm/mysql2'
 import { getConfig } from '@/config/index.js'
 import { getLogger } from '@/shared/logger.js'
-import * as schema from './schema/index.js'
+import * as schema from './schema.js'
 
 export type Database = MySql2Database<typeof schema>
 

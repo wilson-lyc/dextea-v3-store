@@ -32,43 +32,49 @@ export function createOrderRoutes(options: OrderModuleOptions): FastifyPluginAsy
       async (request, reply) => {
         const result = await orderService.getOrderWindow(buildGatewayRequest(request))
         return reply.send(success(result))
-      },
+      }
     )
 
     app.get(
       '/orders/:orderId',
-      { schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } } },
+      {
+        schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } },
+      },
       async (request, reply) => {
         const result = await orderService.getOrderDetail(
           buildGatewayRequest(request),
-          request.params.orderId,
+          request.params.orderId
         )
         return reply.send(success(result))
-      },
+      }
     )
 
     app.post(
       '/orders/:orderId/ready',
-      { schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } } },
+      {
+        schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } },
+      },
       async (request, reply) => {
         const result = await orderService.markOrderReady(
           buildGatewayRequest(request),
-          request.params.orderId,
+          request.params.orderId
         )
         return reply.send(success(result))
-      },
+      }
     )
 
     app.post(
       '/orders/:orderId/collect',
-      { schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } } },
+      {
+        schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } },
+      },
       async (request, reply) => {
         const result = await orderService.markOrderCollected(
           buildGatewayRequest(request),
-          request.params.orderId,
+          request.params.orderId
         )
         return reply.send(success(result))
-      },
+      }
     )
   }
 }

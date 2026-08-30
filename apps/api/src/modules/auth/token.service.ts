@@ -22,7 +22,7 @@ export class JwtTokenService implements TokenService {
 
   public constructor(
     secret: string = getConfig().jwt.secret,
-    expiresIn: string = getConfig().jwt.expiresIn,
+    expiresIn: string = getConfig().jwt.expiresIn
   ) {
     this.secret = secret
     this.expiresIn = expiresIn

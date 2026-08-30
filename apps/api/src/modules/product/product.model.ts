@@ -8,7 +8,7 @@ export class Product {
     public readonly price: number,
     public readonly status: ProductGlobalStatusCode,
     public readonly createdAt: string,
-    public readonly updatedAt: string,
+    public readonly updatedAt: string
   ) {}
 
   public isGloballyActive(): boolean {

@@ -7,7 +7,7 @@ import type { CustomizationItem, CustomizationOption } from './customization.mod
 
 export function toCustomizationOptionView(
   option: CustomizationOption,
-  storeStatus: CustomizationOptionStoreStatusCode,
+  storeStatus: CustomizationOptionStoreStatusCode
 ): CustomizationOptionView {
   return {
     id: option.id,
@@ -24,7 +24,7 @@ export function toCustomizationOptionView(
 
 export function toCustomizationItemView(
   item: CustomizationItem,
-  options: CustomizationOptionView[],
+  options: CustomizationOptionView[]
 ): CustomizationItemView {
   return {
     id: item.id,

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { StoreStatus, type StoreStatusCode } from '@dextea/constraints'
 import type { Database } from '@/infrastructure/database/pool.js'
-import { stores } from '@/infrastructure/database/schema/stores.js'
+import { stores } from '@/infrastructure/database/schema.js'
 import { Store } from './store.model.js'
 
 export interface StoreRepository {
@@ -20,15 +20,16 @@ export class DrizzleStoreRepository implements StoreRepository {
   }
 
   public async findByAccount(account: string): Promise<Store | null> {
-    const [row] = await this.db.select().from(stores).where(eq(stores.account, account)).limit(1)
+    const [row] = await this.db
+      .select()
+      .from(stores)
+      .where(eq(stores.account, account))
+      .limit(1)
     return row ? this.toModel(row) : null
   }
 
   public async updateStatus(id: number, status: StoreStatusCode): Promise<boolean> {
-    const [result] = await this.db
-      .update(stores)
-      .set({ status })
-      .where(eq(stores.id, id))
+    const [result] = await this.db.update(stores).set({ status }).where(eq(stores.id, id))
 
     return result.affectedRows > 0
   }
@@ -59,7 +60,7 @@ export class DrizzleStoreRepository implements StoreRepository {
       row.latitude,
       row.email,
       row.createdAt,
-      row.updatedAt,
+      row.updatedAt
     )
   }
 }

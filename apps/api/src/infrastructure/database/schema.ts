@@ -1,4 +1,3 @@
-// 由 drizzle-kit pull 生成，请勿手工编辑
 import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, unique, serial, varchar, text, timestamp, bigint, tinyint, index, decimal, double, int } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
@@ -31,6 +30,48 @@ export const customers = mysqlTable("customers", {
 	primaryKey({ columns: [table.id], name: "customers_id"}),
 	unique("uq_customers_weixin_open_id").on(table.weixinOpenId),
 	unique("uq_customers_alipay_open_id").on(table.alipayOpenId),
+]);
+
+export const customizationItems = mysqlTable("customization_items", {
+	id: bigint({ mode: "number", unsigned: true }).autoincrement().notNull(),
+	productId: bigint("product_id", { mode: "number", unsigned: true }).notNull(),
+	name: varchar({ length: 32 }).notNull(),
+	sort: tinyint().notNull(),
+	status: tinyint().notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+},
+(table) => [
+	index("idx_customization_items_product_id").on(table.productId),
+	primaryKey({ columns: [table.id], name: "customization_items_id"}),
+]);
+
+export const customizationOptionStoreStatus = mysqlTable("customization_option_store_status", {
+	optionId: bigint("option_id", { mode: "number", unsigned: true }).notNull(),
+	storeId: bigint("store_id", { mode: "number", unsigned: true }).notNull(),
+	status: tinyint().notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.optionId, table.storeId], name: "customization_option_store_status_option_id_store_id"}),
+]);
+
+export const customizationOptions = mysqlTable("customization_options", {
+	id: bigint({ mode: "number", unsigned: true }).autoincrement().notNull(),
+	itemId: bigint("item_id", { mode: "number", unsigned: true }).notNull(),
+	name: varchar({ length: 32 }).notNull(),
+	price: decimal({ precision: 10, scale: 2 }).notNull(),
+	sort: tinyint().notNull(),
+	status: tinyint().notNull(),
+	ingredientId: bigint("ingredient_id", { mode: "number", unsigned: true }),
+	ingredientQuantity: double("ingredient_quantity"),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+},
+(table) => [
+	index("idx_customization_options_item_id").on(table.itemId),
+	primaryKey({ columns: [table.id], name: "customization_options_id"}),
 ]);
 
 export const employeeRoles = mysqlTable("employee_roles", {
@@ -240,6 +281,17 @@ export const productIngredients = mysqlTable("product_ingredients", {
 	primaryKey({ columns: [table.productId, table.ingredientId], name: "product_ingredients_product_id_ingredient_id"}),
 ]);
 
+export const productStoreStatus = mysqlTable("product_store_status", {
+	productId: bigint("product_id", { mode: "number", unsigned: true }).notNull(),
+	storeId: bigint("store_id", { mode: "number", unsigned: true }).notNull(),
+	status: tinyint().notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.productId, table.storeId], name: "product_store_status_product_id_store_id"}),
+]);
+
 export const productTagMap = mysqlTable("product_tag_map", {
 	productId: bigint("product_id", { mode: "number", unsigned: true }).notNull(),
 	tagId: bigint("tag_id", { mode: "number", unsigned: true }).notNull(),
@@ -258,6 +310,20 @@ export const productTags = mysqlTable("product_tags", {
 (table) => [
 	primaryKey({ columns: [table.id], name: "product_tags_id"}),
 	unique("uq_product_tags_name").on(table.name),
+]);
+
+export const products = mysqlTable("products", {
+	id: bigint({ mode: "number", unsigned: true }).autoincrement().notNull(),
+	name: varchar({ length: 64 }).notNull(),
+	brief: varchar({ length: 64 }).notNull(),
+	description: varchar({ length: 500 }).notNull(),
+	status: tinyint().notNull(),
+	price: decimal({ precision: 10, scale: 2 }).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "products_id"}),
 ]);
 
 export const rolePermissions = mysqlTable("role_permissions", {
@@ -300,4 +366,27 @@ export const storeMenus = mysqlTable("store_menus", {
 },
 (table) => [
 	primaryKey({ columns: [table.storeId, table.menuId], name: "store_menus_store_id_menu_id"}),
+]);
+
+export const stores = mysqlTable("stores", {
+	id: bigint({ mode: "number", unsigned: true }).autoincrement().notNull(),
+	name: varchar({ length: 255 }).notNull(),
+	province: varchar({ length: 50 }).notNull(),
+	city: varchar({ length: 50 }).notNull(),
+	district: varchar({ length: 50 }).notNull(),
+	address: varchar({ length: 500 }).notNull(),
+	status: tinyint().notNull(),
+	businessHours: varchar("business_hours", { length: 255 }).notNull(),
+	phone: varchar({ length: 50 }).notNull(),
+	longitude: double().notNull(),
+	latitude: double().notNull(),
+	account: varchar({ length: 255 }).notNull(),
+	password: varchar({ length: 255 }).notNull(),
+	email: varchar({ length: 255 }).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().onUpdateNow().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "stores_id"}),
+	unique("uq_stores_account").on(table.account),
 ]);

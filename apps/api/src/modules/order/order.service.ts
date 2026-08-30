@@ -16,21 +16,21 @@ export class OrderService {
 
   public async getOrderDetail(
     request: OrderGatewayRequest,
-    orderId: number,
+    orderId: number
   ): Promise<OrderDetailData> {
     return this.forward(() => this.orderGateway.getOrderDetail(request, orderId))
   }
 
   public async markOrderReady(
     request: OrderGatewayRequest,
-    orderId: number,
+    orderId: number
   ): Promise<OrderDetailData> {
     return this.forward(() => this.orderGateway.markOrderReady(request, orderId))
   }
 
   public async markOrderCollected(
     request: OrderGatewayRequest,
-    orderId: number,
+    orderId: number
   ): Promise<OrderDetailData> {
     return this.forward(() => this.orderGateway.markOrderCollected(request, orderId))
   }
@@ -42,7 +42,7 @@ export class OrderService {
       if (error instanceof UpstreamServiceError) {
         this.logger.error(
           { upstream: error.upstream, status: error.status, message: error.message },
-          '[order] 调用订单微服务失败',
+          '[order] 调用订单微服务失败'
         )
         throw new BizError(orderErrors.ORDER_SERVICE_UNAVAILABLE)
       }

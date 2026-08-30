@@ -32,7 +32,7 @@ function resolveRequestPath(url: string): string {
 export function registerAuthGuard(
   app: FastifyInstance,
   tokenService: TokenService,
-  options: AuthGuardOptions = {},
+  options: AuthGuardOptions = {}
 ): void {
   const rules = options.publicRoutes
 

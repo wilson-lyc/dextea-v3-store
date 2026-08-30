@@ -8,10 +8,7 @@ import {
   type ProductStoreStatusCode,
 } from '@dextea/constraints'
 import type { Database } from '@/infrastructure/database/pool.js'
-import {
-  productStoreStatus,
-  products,
-} from '@/infrastructure/database/schema/products.js'
+import { productStoreStatus, products } from '@/infrastructure/database/schema.js'
 import { buildStoreStatusMap } from '@/shared/store-status.js'
 import { Product } from './product.model.js'
 
@@ -19,13 +16,17 @@ export interface ProductRepository {
   findGloballyActive(): Promise<Product[]>
   findStoreStatusByStoreId(
     storeId: number,
-    productIds: readonly number[],
+    productIds: readonly number[]
   ): Promise<Map<number, ProductStoreStatusCode>>
-  setStoreStatus(storeId: number, productId: number, status: ProductStoreStatusCode): Promise<void>
+  setStoreStatus(
+    storeId: number,
+    productId: number,
+    status: ProductStoreStatusCode
+  ): Promise<void>
   batchSetStoreStatus(
     storeId: number,
     productIds: readonly number[],
-    status: ProductStoreStatusCode,
+    status: ProductStoreStatusCode
   ): Promise<void>
 }
 
@@ -44,7 +45,7 @@ export class DrizzleProductRepository implements ProductRepository {
 
   public async findStoreStatusByStoreId(
     storeId: number,
-    productIds: readonly number[],
+    productIds: readonly number[]
   ): Promise<Map<number, ProductStoreStatusCode>> {
     if (productIds.length === 0) {
       return new Map()
@@ -56,22 +57,22 @@ export class DrizzleProductRepository implements ProductRepository {
       .where(
         and(
           eq(productStoreStatus.storeId, storeId),
-          inArray(productStoreStatus.productId, [...productIds]),
-        ),
+          inArray(productStoreStatus.productId, [...productIds])
+        )
       )
 
     return buildStoreStatusMap<ProductStoreStatusCode>(
       productIds,
       productStoreStatusCode.STORE_DISABLED,
       rows.map((row) => [Number(row.productId), row.status] as const),
-      (raw) => ProductStoreStatus.schema().parse(raw),
+      (raw) => ProductStoreStatus.schema().parse(raw)
     )
   }
 
   public async setStoreStatus(
     storeId: number,
     productId: number,
-    status: ProductStoreStatusCode,
+    status: ProductStoreStatusCode
   ): Promise<void> {
     await this.db
       .insert(productStoreStatus)
@@ -82,7 +83,7 @@ export class DrizzleProductRepository implements ProductRepository {
   public async batchSetStoreStatus(
     storeId: number,
     productIds: readonly number[],
-    status: ProductStoreStatusCode,
+    status: ProductStoreStatusCode
   ): Promise<void> {
     if (productIds.length === 0) {
       return
@@ -102,7 +103,7 @@ export class DrizzleProductRepository implements ProductRepository {
       Number(row.price),
       ProductGlobalStatus.schema().parse(row.status) as ProductGlobalStatusCode,
       row.createdAt,
-      row.updatedAt,
+      row.updatedAt
     )
   }
 }

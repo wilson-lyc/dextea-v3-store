@@ -17,7 +17,7 @@ export class Store {
     public readonly latitude: number,
     public readonly email: string,
     public readonly createdAt: string,
-    public readonly updatedAt: string,
+    public readonly updatedAt: string
   ) {}
 
   public isAvailable(): boolean {

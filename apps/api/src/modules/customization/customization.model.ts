@@ -13,7 +13,7 @@ export class CustomizationItem {
     public readonly sort: number,
     public readonly status: CustomizationItemStatusCode,
     public readonly createdAt: string,
-    public readonly updatedAt: string,
+    public readonly updatedAt: string
   ) {}
 
   public isGloballyActive(): boolean {
@@ -30,7 +30,7 @@ export class CustomizationOption {
     public readonly sort: number,
     public readonly status: CustomizationOptionGlobalStatusCode,
     public readonly createdAt: string,
-    public readonly updatedAt: string,
+    public readonly updatedAt: string
   ) {}
 
   public isGloballyActive(): boolean {

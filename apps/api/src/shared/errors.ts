@@ -14,7 +14,7 @@ export type BizErrorCatalog<T extends Record<string, BizErrorSpec>> = {
 }
 
 export function defineBizErrors<const T extends Record<string, BizErrorSpec>>(
-  specs: T,
+  specs: T
 ): BizErrorCatalog<T> {
   const entries = Object.entries(specs).map(([code, spec]) => [
     code,

@@ -56,14 +56,16 @@ interface RegisteredModule {
 
 async function registerApiModules(
   app: FastifyInstance,
-  modules: RegisteredModule[],
+  modules: RegisteredModule[]
 ): Promise<void> {
   for (const module of modules) {
     await app.register(module.plugin, { prefix: module.prefix })
   }
 }
 
-export async function buildApp(dependencies: AppDependencies = {}): Promise<FastifyInstance> {
+export async function buildApp(
+  dependencies: AppDependencies = {}
+): Promise<FastifyInstance> {
   const config = getConfig()
 
   const app = Fastify({
@@ -90,7 +92,8 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
     new DrizzleCustomizationRepository(getDatabase())
   const orderEndpointResolver =
     dependencies.orderEndpointResolver ?? createOrderServiceEndpointResolver()
-  const orderGateway = dependencies.orderGateway ?? new HttpOrderGateway(orderEndpointResolver)
+  const orderGateway =
+    dependencies.orderGateway ?? new HttpOrderGateway(orderEndpointResolver)
 
   const tokenService = dependencies.tokenService ?? new JwtTokenService()
   const authService = new StoreCredentialsAuthService(storeRepository, tokenService)
@@ -106,7 +109,10 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
     { prefix: '/api/v1/auth', plugin: createAuthRoutes({ authService, toStoreView }) },
     { prefix: '/api/v1/store', plugin: createStoreRoutes({ storeService }) },
     { prefix: '/api/v1/products', plugin: createProductRoutes({ productService }) },
-    { prefix: '/api/v1/products', plugin: createCustomizationRoutes({ customizationService }) },
+    {
+      prefix: '/api/v1/products',
+      plugin: createCustomizationRoutes({ customizationService }),
+    },
     { prefix: '/api/v1/store', plugin: createOrderRoutes({ orderService }) },
   ]
 
