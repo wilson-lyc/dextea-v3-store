@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/shared/ui/scroll-area"
-import { useStore } from "@/app/store-provider"
+import { useStore } from "@/app/store-context"
 import { StoreInfoCard } from "@/features/store-settings/components/store-info-card"
 import { StoreStatusCard } from "@/features/store-settings/components/store-status-card"
 import { ResetPasswordCard } from "@/features/store-settings/components/reset-password-card"

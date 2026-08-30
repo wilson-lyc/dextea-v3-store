@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Coffee } from "lucide-react"
 
 import { Button } from "@/shared/ui/button"
-import { useStore } from "@/app/store-provider"
+import { useStore } from "@/app/store-context"
 import { paths } from "@/router/paths"
 import {
   ORDER_TABS,

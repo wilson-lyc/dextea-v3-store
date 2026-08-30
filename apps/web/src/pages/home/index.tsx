@@ -4,7 +4,7 @@ import { StoreStatus } from "@dextea/constraints"
 
 import { Button } from "@/shared/ui/button"
 import { Card, CardContent } from "@/shared/ui/card"
-import { useStore } from "@/app/store-provider"
+import { useStore } from "@/app/store-context"
 import { paths } from "@/router/paths"
 import { clearSession } from "@/features/auth/session"
 import { formatStoreAddress } from "@/features/store/model"
