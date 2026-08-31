@@ -14,6 +14,7 @@ import {
 import { useOrderWindow } from "@/features/order/hooks/use-order-window"
 import { useOrderDetail } from "@/features/order/hooks/use-order-detail"
 import { useOrderReady } from "@/features/order/hooks/use-order-ready"
+import { useOrderCollect } from "@/features/order/hooks/use-order-collect"
 import { OrderList } from "@/features/order/components/order-list"
 import {
   OrderDetail,
@@ -51,6 +52,7 @@ export default function CounterPage() {
   const displayedDetail = detailMatchesSelection ? detail : selected
 
   const orderReady = useOrderReady({ setOrders, reloadDetail })
+  const orderCollect = useOrderCollect({ setOrders, reloadDetail })
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
@@ -112,9 +114,10 @@ export default function CounterPage() {
           {displayedDetail ? (
             <OrderDetail
               order={displayedDetail}
-              actionPending={orderReady.pending}
+              actionPending={orderReady.pending || orderCollect.pending}
               onAction={(action) => {
                 if (action.action === "ready") orderReady.run(displayedDetail)
+                if (action.action === "collect") orderCollect.run(displayedDetail)
               }}
             />
           ) : (

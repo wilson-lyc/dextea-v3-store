@@ -110,14 +110,14 @@ export class HttpOrderGateway implements OrderGateway {
   public async markOrderCollected(
     request: OrderGatewayRequest,
     orderId: number
-  ): Promise<OrderDetailData> {
+  ): Promise<null> {
     const payload = await this.request(
       request,
       `/api/v1/store/orders/${orderId}/collect`,
       'POST'
     )
-    return this.parseUpstream<OrderDetailData>(
-      orderDetailResponseSchema,
+    return this.parseUpstream<null>(
+      orderReadyUpstreamResponseSchema,
       payload,
       `POST /orders/${orderId}/collect`
     )

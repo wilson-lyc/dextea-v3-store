@@ -24,3 +24,7 @@ export function fetchOrderDetail(orderId: number): Promise<OrderDetailData> {
 export function markOrderReady(orderId: number): Promise<null> {
   return http.post<null>(apiRoutes.order.ready(orderId))
 }
+
+export function markOrderCollected(orderId: number): Promise<null> {
+  return http.post<null>(apiRoutes.order.collect(orderId))
+}
