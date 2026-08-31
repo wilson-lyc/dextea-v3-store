@@ -16,13 +16,41 @@ import {
 export class UpstreamServiceError extends Error {
   public readonly upstream: string
   public readonly status: number | undefined
+  public readonly code: number | undefined
 
-  public constructor(upstream: string, status: number | undefined, message: string) {
+  public constructor(
+    upstream: string,
+    status: number | undefined,
+    code: number | undefined,
+    message: string,
+  ) {
     super(message)
     this.name = 'UpstreamServiceError'
     this.upstream = upstream
     this.status = status
+    this.code = code
   }
+}
+
+interface LooseEnvelope {
+  code?: number
+  message?: string
+}
+
+function extractEnvelope(payload: unknown): LooseEnvelope | null {
+  if (
+    payload !== null &&
+    typeof payload === 'object' &&
+    'code' in payload &&
+    'message' in payload
+  ) {
+    const candidate = payload as Record<string, unknown>
+    return {
+      code: typeof candidate.code === 'number' ? candidate.code : undefined,
+      message: typeof candidate.message === 'string' ? candidate.message : undefined,
+    }
+  }
+  return null
 }
 
 interface UpstreamEnvelopeShape<T> {
@@ -100,15 +128,26 @@ export class HttpOrderGateway implements OrderGateway {
     payload: unknown,
     context: string
   ): T {
-    const parsed = schema.safeParse(payload)
+    const envelope = extractEnvelope(payload)
 
-    if (!parsed.success) {
+    if (envelope?.code === undefined) {
       this.logger.error({ payload, context }, '[order-gateway] 订单微服务响应结构非法')
-      throw new UpstreamServiceError('order-service', undefined, '订单服务响应结构非法')
+      throw new UpstreamServiceError('order-service', undefined, undefined, '订单服务响应结构非法')
     }
 
-    if (parsed.data.code !== SUCCESS_CODE) {
-      throw new UpstreamServiceError('order-service', undefined, parsed.data.message)
+    if (envelope.code !== SUCCESS_CODE) {
+      throw new UpstreamServiceError(
+        'order-service',
+        undefined,
+        envelope.code,
+        envelope.message ?? '订单服务请求失败',
+      )
+    }
+
+    const parsed = schema.safeParse(payload)
+    if (!parsed.success) {
+      this.logger.error({ payload, context }, '[order-gateway] 订单微服务成功响应结构非法')
+      throw new UpstreamServiceError('order-service', undefined, undefined, '订单服务响应结构非法')
     }
 
     return parsed.data.data
@@ -149,17 +188,26 @@ export class HttpOrderGateway implements OrderGateway {
         throw error
       }
 
-      throw new UpstreamServiceError('order-service', undefined, '订单服务网络不可达')
+      throw new UpstreamServiceError('order-service', undefined, undefined, '订单服务网络不可达')
     }
+
+    const payload = await response.json().catch(() => null)
 
     if (!response.ok) {
+      const envelope = extractEnvelope(payload)
       this.logger.error(
-        `[order-gateway] 订单微服务返回 ${response.status} ${method} ${path}`
+        { status: response.status, code: envelope?.code, path, method },
+        '[order-gateway] 订单微服务返回非成功状态码'
       )
-      throw new UpstreamServiceError('order-service', response.status, '订单服务响应异常')
+      throw new UpstreamServiceError(
+        'order-service',
+        response.status,
+        envelope?.code,
+        envelope?.message ?? '订单服务响应异常',
+      )
     }
 
-    return response.json()
+    return payload
   }
 
   private async resolveBaseUrl(): Promise<string> {
@@ -171,7 +219,7 @@ export class HttpOrderGateway implements OrderGateway {
           { reason: error.message },
           '[order-gateway] 未解析到订单微服务实例'
         )
-        throw new UpstreamServiceError('order-service', undefined, '订单服务实例不可用')
+        throw new UpstreamServiceError('order-service', undefined, undefined, '订单服务实例不可用')
       }
 
       throw error
