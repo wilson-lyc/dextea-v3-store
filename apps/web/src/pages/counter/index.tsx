@@ -15,6 +15,7 @@ import { useOrderWindow } from "@/features/order/hooks/use-order-window"
 import { useOrderDetail } from "@/features/order/hooks/use-order-detail"
 import { useOrderReady } from "@/features/order/hooks/use-order-ready"
 import { useOrderCollect } from "@/features/order/hooks/use-order-collect"
+import { useOrderEvents } from "@/features/order/hooks/use-order-events"
 import { OrderList } from "@/features/order/components/order-list"
 import {
   OrderDetail,
@@ -53,6 +54,16 @@ export default function CounterPage() {
 
   const orderReady = useOrderReady({ setOrders, reloadDetail })
   const orderCollect = useOrderCollect({ setOrders, reloadDetail })
+
+  // SSE 收到新订单：只把卡片插到列表最前面。
+  // 用户尚未手动点选时，把选中项钉在原来的第一单上，右侧详情保持不变，
+  // 直到人工点击卡片后才切换过去。
+  useOrderEvents((updater) => {
+    if (selectedId === null && orders[0]) {
+      setSelectedId(orders[0].id)
+    }
+    setOrders(updater)
+  }, reload)
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">

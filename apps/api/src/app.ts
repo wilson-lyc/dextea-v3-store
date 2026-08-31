@@ -36,7 +36,8 @@ import { CustomizationService } from '@/modules/customization/customization.serv
 import { createCustomizationRoutes } from '@/modules/customization/customization.module.js'
 import { OrderService } from '@/modules/order/order.service.js'
 import { createOrderRoutes } from '@/modules/order/order.module.js'
-import { ScreenSimulator } from '@/modules/screen/screen.service.js'
+import { createOrderEventRoutes } from '@/modules/order/order-events.module.js'
+import { screenEventHub } from '@/modules/screen/screen.service.js'
 import { createScreenRoutes } from '@/modules/screen/screen.module.js'
 import { createOrderServiceEndpointResolver } from '@/infrastructure/external/order-endpoint.resolver.js'
 import type { OrderGateway } from '@/modules/order/order.gateway.js'
@@ -103,8 +104,7 @@ export async function buildApp(
   const productService = new ProductService(productRepository)
   const customizationService = new CustomizationService(customizationRepository)
   const orderService = new OrderService(orderGateway)
-  // 服务大屏模拟器：SSE 事件源（无状态，连接级订阅）
-  const screenSimulator = new ScreenSimulator()
+  // 服务大屏事件源：MQ 出餐消息经 screenEventHub 推送给 SSE 订阅者
 
   // 注册在插件之后：CORS 预检（OPTIONS）需先于鉴权拦截器处理
   registerAuthGuard(app, tokenService)
@@ -118,7 +118,8 @@ export async function buildApp(
       plugin: createCustomizationRoutes({ customizationService }),
     },
     { prefix: '/api/v1/store', plugin: createOrderRoutes({ orderService }) },
-    { prefix: '/api/v1/screen', plugin: createScreenRoutes({ screenSimulator }) },
+    { prefix: '/api/v1/store/orders', plugin: createOrderEventRoutes() },
+    { prefix: '/api/v1/screen', plugin: createScreenRoutes({ screenEventHub }) },
   ]
 
   await registerApiModules(app, modules)

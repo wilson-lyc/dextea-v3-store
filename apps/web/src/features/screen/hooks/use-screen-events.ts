@@ -5,18 +5,17 @@ import { apiRoutes } from "@dextea/constraints"
 import { getToken } from "@/features/auth/session"
 import { API_BASE_URL } from "@/shared/api/client"
 
-export type ScreenEventType = "snapshot" | "making" | "ready" | "collected"
+export type ScreenEventType = "snapshot" | "ready" | "collected"
 
 export interface ScreenEventPayload {
   type: ScreenEventType
   number?: string
   ready?: string[]
-  making?: string[]
 }
 
 export type ScreenConnection = "connecting" | "live" | "offline"
 
-const EVENT_TYPES: ScreenEventType[] = ["snapshot", "making", "ready", "collected"]
+const EVENT_TYPES: ScreenEventType[] = ["snapshot", "ready", "collected"]
 
 /**
  * 订阅服务大屏 SSE 事件流（/api/v1/screen/events），

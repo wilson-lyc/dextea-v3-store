@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react"
+import { useEffect, useMemo, useReducer, useState } from "react"
 
 import { useScreenEvents, type ScreenEventPayload } from "@/features/screen/hooks/use-screen-events"
 
@@ -9,15 +9,14 @@ interface ScreenSlot {
 
 interface ScreenQueue {
   ready: ScreenSlot[]
-  making: string[]
   recent: string[]
 }
 
-// 大屏数据由后端 SSE 模拟流驱动（making → ready → collected）
+// 大屏数据由后端 SSE 事件流驱动（MQ 出餐消息 → ready 事件）
 const READY_CAPACITY = 12
 const RECENT_CAPACITY = 8
 
-const EMPTY_QUEUE: ScreenQueue = { ready: [], making: [], recent: [] }
+const EMPTY_QUEUE: ScreenQueue = { ready: [], recent: [] }
 
 function moveToRecent(recent: string[], numbers: string[]): string[] {
   return [...recent, ...numbers].slice(-RECENT_CAPACITY)
@@ -28,22 +27,15 @@ function queueReducer(state: ScreenQueue, event: ScreenEventPayload): ScreenQueu
     case "snapshot": {
       return {
         ready: (event.ready ?? []).map((number) => ({ number, calledAt: Date.now() })),
-        making: event.making ?? [],
         recent: [],
       }
     }
-    case "making": {
-      const { number } = event
-      if (!number || state.making.includes(number)) return state
-      return { ...state, making: [...state.making, number] }
-    }
     case "ready": {
       const { number } = event
-      if (!number) return state
+      if (!number || state.ready.some((slot) => slot.number === number)) return state
       const ready = [...state.ready, { number, calledAt: Date.now() }]
       const overflow = ready.length > READY_CAPACITY ? ready.slice(0, ready.length - READY_CAPACITY) : []
       return {
-        making: state.making.filter((item) => item !== number),
         ready: ready.slice(-READY_CAPACITY),
         recent: moveToRecent(state.recent, overflow.map((slot) => slot.number)),
       }
@@ -52,7 +44,6 @@ function queueReducer(state: ScreenQueue, event: ScreenEventPayload): ScreenQueu
       const { number } = event
       if (!number) return state
       return {
-        ...state,
         ready: state.ready.filter((slot) => slot.number !== number),
         recent: moveToRecent(state.recent, [number]),
       }
@@ -82,37 +73,6 @@ export default function ScreenPage() {
 
   const latest = queue.ready.at(-1) ?? null
   const waiting = useMemo(() => queue.ready.slice(0, -1).reverse(), [queue.ready])
-  const { making } = queue
-
-  // 制作中 chip 溢出宽度时启用跑马灯，速度随内容长度自适应（约 80px/s）
-  const makingTrackRef = useRef<HTMLDivElement>(null)
-  const [marquee, setMarquee] = useState(false)
-  const [marqueeDuration, setMarqueeDuration] = useState(18)
-
-  useEffect(() => {
-    const track = makingTrackRef.current
-    if (!track) return
-
-    const check = () => {
-      const inner = track.firstElementChild
-      if (!inner) {
-        setMarquee(false)
-        return
-      }
-      // 跑马灯模式下内容会复制成两组，取第一组的宽度
-      const width = inner.firstElementChild?.scrollWidth ?? inner.scrollWidth
-      const overflow = inner.scrollWidth > track.clientWidth
-      setMarquee(overflow)
-      if (overflow) {
-        setMarqueeDuration(Math.max(Math.round(width / 80), 10))
-      }
-    }
-    check()
-
-    const observer = new ResizeObserver(check)
-    observer.observe(track)
-    return () => observer.disconnect()
-  }, [making])
 
   const weekday = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][now.getDay()]
   const dateText = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${weekday}`
@@ -184,43 +144,11 @@ export default function ScreenPage() {
         </section>
       </main>
 
-      {/* 底栏：制作中队列 + 时间（内容溢出时无缝跑马灯滚动） */}
+      {/* 底栏：制作中标题（队列数据后续接入）+ 时间 */}
       <footer className="flex shrink-0 items-center gap-[1.5vw] px-[2vw] py-[1.4vh]">
         <SectionTitle>制作中</SectionTitle>
-        <div ref={makingTrackRef} className="min-w-0 flex-1 overflow-hidden">
-          {making.length === 0 ? (
-            <span
-              className="text-neutral-500"
-              style={{ fontSize: "clamp(13px, 1.2vw, 22px)" }}
-            >
-              全部制作完成
-            </span>
-          ) : marquee ? (
-            <div
-              className="flex w-max"
-              style={{ animation: `screen-marquee ${marqueeDuration}s linear infinite` }}
-            >
-              {[0, 1].map((group) => (
-                <div
-                  key={group}
-                  className="flex gap-[0.9vw]"
-                  style={{ paddingInlineEnd: "0.9vw" }}
-                  aria-hidden={group === 1}
-                >
-                  {making.map((number, index) => (
-                    <MakingChip key={`${group}-${number}`} number={number} />
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-x-[0.9vw] gap-y-[0.6vh]">
-              {making.map((number, index) => (
-                <MakingChip key={number} number={number} />
-              ))}
-            </div>
-          )}
-        </div>
+
+        <div className="flex-1" />
 
         <div className="flex shrink-0 items-baseline gap-[0.9vw]">
           {connection !== "live" && (
@@ -264,10 +192,6 @@ export default function ScreenPage() {
             transform: translateY(0) scale(1);
           }
         }
-        @keyframes screen-marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
       `}</style>
     </div>
   )
@@ -284,16 +208,5 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     >
       {children}
     </h2>
-  )
-}
-
-function MakingChip({ number }: { number: string }) {
-  return (
-    <span
-      className="tabular-nums font-medium text-black"
-      style={{ fontSize: "clamp(13px, 1.3vw, 24px)" }}
-    >
-      {number}
-    </span>
   )
 }

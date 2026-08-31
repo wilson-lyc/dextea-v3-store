@@ -1,102 +1,46 @@
-export type ScreenEventType = 'snapshot' | 'making' | 'ready' | 'collected'
+export type ScreenEventType = 'snapshot' | 'ready' | 'collected'
 
 export interface ScreenEvent {
   type: ScreenEventType
-  /** 制作中 / 待取餐 / 刚被取走的取餐码（snapshot 事件无此字段） */
+  /** 待取餐 / 刚被取走的取餐码（snapshot 事件无此字段） */
   number?: string
   ready?: string[]
-  making?: string[]
 }
 
-interface ScreenSimulatorState {
-  making: string[]
-  ready: string[]
-  /** 下一个取餐号序号（8xxx 格式） */
-  nextSeq: number
-}
-
-const MAX_MAKING = 6
-const MAX_READY = 10
-const TICK_MIN_MS = 2_500
-const TICK_MAX_MS = 6_500
-
-function randomBetween(min: number, max: number): number {
-  return min + Math.random() * (max - min)
-}
-
-function formatNumber(seq: number): string {
-  return `8${seq.toString().padStart(3, '0')}`
-}
+const MAX_READY = 30
 
 /**
- * 大屏事件模拟器：内存中维护制作/待取餐队列，
- * 按随机间隔生成 making → ready → collected 事件流，用于联调与演示。
+ * 大屏事件总线：内存中维护待取餐取餐码列表，
+ * MQ 消费者收到出餐消息后调用 publishReady 推送给所有 SSE 订阅者。
  */
-export class ScreenSimulator {
-  private state: ScreenSimulatorState = { making: [], ready: [], nextSeq: 1 }
+export class ScreenEventHub {
+  private ready: string[] = []
   private subscribers = new Set<(event: ScreenEvent) => void>()
-  private timer: NodeJS.Timeout | null = null
 
   public subscribe(listener: (event: ScreenEvent) => void): () => void {
     this.subscribers.add(listener)
-    if (!this.timer) {
-      this.scheduleNextTick()
-    }
     return () => {
       this.subscribers.delete(listener)
-      if (this.subscribers.size === 0 && this.timer) {
-        clearTimeout(this.timer)
-        this.timer = null
-      }
     }
   }
 
   public currentSnapshot(): ScreenEvent {
-    return { type: 'snapshot', ready: [...this.state.ready], making: [...this.state.making] }
+    return { type: 'snapshot', ready: [...this.ready] }
   }
 
-  private scheduleNextTick(): void {
-    this.timer = setTimeout(() => {
-      this.timer = null
-      this.tick()
-      if (this.subscribers.size > 0) {
-        this.scheduleNextTick()
-      }
-    }, randomBetween(TICK_MIN_MS, TICK_MAX_MS))
+  /** 出餐：新增一个待取餐取餐码并广播 */
+  public publishReady(number: string): void {
+    if (!this.ready.includes(number)) {
+      // 无 collected 消息源时仅靠容量上限淘汰最旧的取餐码
+      this.ready = [...this.ready, number].slice(-MAX_READY)
+    }
+    this.publish({ type: 'ready', number })
   }
 
-  private tick(): void {
-    const { making, ready } = this.state
-    const actions: Array<() => ScreenEvent> = []
-
-    if (making.length < MAX_MAKING) {
-      actions.push(() => {
-        const seq = this.state.nextSeq + 1 + Math.floor(Math.random() * 3)
-        this.state.nextSeq = seq
-        const number = formatNumber(seq)
-        this.state.making = [...this.state.making, number]
-        return { type: 'making', number }
-      })
-    }
-    if (making.length > 0 && ready.length < MAX_READY) {
-      actions.push(() => {
-        const number = this.state.making[0]!
-        this.state.making = this.state.making.slice(1)
-        this.state.ready = [...this.state.ready, number]
-        return { type: 'ready', number }
-      })
-    }
-    if (ready.length > 2) {
-      actions.push(() => {
-        const number = this.state.ready[0]!
-        this.state.ready = this.state.ready.slice(1)
-        return { type: 'collected', number }
-      })
-    }
-
-    if (actions.length === 0) return
-    const emit = actions[Math.floor(Math.random() * actions.length)]!
-    this.publish(emit())
+  /** 取餐完成：移除取餐码并广播 */
+  public publishCollected(number: string): void {
+    this.ready = this.ready.filter((item) => item !== number)
+    this.publish({ type: 'collected', number })
   }
 
   private publish(event: ScreenEvent): void {
@@ -109,3 +53,6 @@ export class ScreenSimulator {
     }
   }
 }
+
+// 全局单例：SSE 路由与 MQ 消费者共享同一事件源
+export const screenEventHub = new ScreenEventHub()

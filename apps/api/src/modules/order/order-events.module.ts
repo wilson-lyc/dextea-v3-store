@@ -1,20 +1,14 @@
-import type { ServerResponse } from 'node:http'
 import type { FastifyPluginAsync } from 'fastify'
 import { getConfig } from '@/config/index.js'
 import { getLogger } from '@/shared/logger.js'
-import type { ScreenEvent, ScreenEventHub } from './screen.service.js'
-
-export interface ScreenModuleOptions {
-  screenEventHub: ScreenEventHub
-}
+import { orderEventHub, type OrderStatusEvent } from './order-events.service.js'
 
 /**
- * 服务大屏 SSE 通道：GET /events
- * 事件类型：snapshot（重连时全量）/ ready / collected
+ * 门店订单 SSE 通道：GET /api/v1/store/orders/events
+ * 鉴权走全局 auth-guard（EventSource 用 ?token= 查询参数），
+ * 连接即订阅当前 token 所属门店的订单事件，事件类型 new-order。
  */
-export function createScreenRoutes(options: ScreenModuleOptions): FastifyPluginAsync {
-  const { screenEventHub } = options
-
+export function createOrderEventRoutes(): FastifyPluginAsync {
   return async (app) => {
     app.get('/events', { schema: { hide: true } }, async (request, reply) => {
       const log = getLogger()
@@ -38,20 +32,28 @@ export function createScreenRoutes(options: ScreenModuleOptions): FastifyPluginA
         ...extraHeaders,
       })
       reply.raw.write(`retry: 3000\n\n`)
-      writeEvent(reply.raw, screenEventHub.currentSnapshot())
 
-      const send = (event: ScreenEvent) => writeEvent(reply.raw, event)
-      const unsubscribe = screenEventHub.subscribe(send)
+      // auth-guard 已保证携带有效 token，这里仅满足类型收窄
+      const storeId = request.storeId
+      if (storeId === undefined) {
+        reply.raw.destroy()
+        return reply
+      }
+      const send = (event: OrderStatusEvent) => {
+        reply.raw.write(`event: new-order\n`)
+        reply.raw.write(`data: ${JSON.stringify(event)}\n\n`)
+      }
+      const unsubscribe = orderEventHub.subscribe(storeId, send)
 
       const heartbeat = setInterval(() => {
         reply.raw.write(`: ping\n\n`)
       }, 15_000)
 
-      requestLog(log, '大屏客户端已接入')
+      log.info(`[order-events] 门店(${storeId})客户端已接入`)
       const close = () => {
         clearInterval(heartbeat)
         unsubscribe()
-        requestLog(log, '大屏客户端已断开')
+        log.info(`[order-events] 门店(${storeId})客户端已断开`)
       }
       reply.raw.on('close', close)
       reply.raw.on('error', close)
@@ -60,13 +62,4 @@ export function createScreenRoutes(options: ScreenModuleOptions): FastifyPluginA
       await new Promise<void>(() => {})
     })
   }
-}
-
-function writeEvent(res: ServerResponse, event: ScreenEvent): void {
-  res.write(`event: ${event.type}\n`)
-  res.write(`data: ${JSON.stringify(event)}\n\n`)
-}
-
-function requestLog(log: ReturnType<typeof getLogger>, message: string): void {
-  log.info(`[screen] ${message}`)
 }
