@@ -13,6 +13,7 @@ import {
 } from "@/features/order/model"
 import { useOrderWindow } from "@/features/order/hooks/use-order-window"
 import { useOrderDetail } from "@/features/order/hooks/use-order-detail"
+import { useOrderReady } from "@/features/order/hooks/use-order-ready"
 import { OrderList } from "@/features/order/components/order-list"
 import {
   OrderDetail,
@@ -25,7 +26,7 @@ export default function CounterPage() {
   const [tab, setTab] = useState<OrderTabKey>("all")
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const { orders: allOrders, loading } = useOrderWindow()
+  const { orders: allOrders, loading, setOrders } = useOrderWindow()
 
   const visibleOrders = useMemo(
     () => allOrders.filter(isCounterVisible),
@@ -45,9 +46,11 @@ export default function CounterPage() {
   const effectiveSelectedId = selectedId ?? orders[0]?.id ?? null
   const selected = orders.find((order) => order.id === effectiveSelectedId) ?? null
 
-  const detail = useOrderDetail(effectiveSelectedId)
+  const { order: detail, reload: reloadDetail } = useOrderDetail(effectiveSelectedId)
   const detailMatchesSelection = detail !== null && detail.id === effectiveSelectedId
   const displayedDetail = detailMatchesSelection ? detail : selected
+
+  const orderReady = useOrderReady({ setOrders, reloadDetail })
 
   return (
     <div className="flex h-svh flex-col bg-muted/30">
@@ -107,7 +110,13 @@ export default function CounterPage() {
 
         <section className="flex min-h-0 flex-col overflow-hidden">
           {displayedDetail ? (
-            <OrderDetail order={displayedDetail} />
+            <OrderDetail
+              order={displayedDetail}
+              actionPending={orderReady.pending}
+              onAction={(action) => {
+                if (action.action === "ready") orderReady.run(displayedDetail)
+              }}
+            />
           ) : (
             <OrderDetailEmpty text="请选择左侧订单查看详情" />
           )}

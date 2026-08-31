@@ -20,3 +20,7 @@ export function fetchOrderWindow(): Promise<OrderWindowData> {
 export function fetchOrderDetail(orderId: number): Promise<OrderDetailData> {
   return http.get<OrderDetailData>(apiRoutes.order.detail(orderId))
 }
+
+export function markOrderReady(orderId: number): Promise<null> {
+  return http.post<null>(apiRoutes.order.ready(orderId))
+}

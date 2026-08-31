@@ -17,6 +17,7 @@ const orderIdParamsSchema = z.object({
 
 const windowResponseSchema = apiEnvelopeSchema(orderWindowDataSchema)
 const detailResponseSchema = apiEnvelopeSchema(orderDetailDataSchema)
+const readyResponseSchema = apiEnvelopeSchema(z.null())
 
 export interface OrderModuleOptions {
   orderService: OrderService
@@ -52,7 +53,7 @@ export function createOrderRoutes(options: OrderModuleOptions): FastifyPluginAsy
     app.post(
       '/orders/:orderId/ready',
       {
-        schema: { params: orderIdParamsSchema, response: { 200: detailResponseSchema } },
+        schema: { params: orderIdParamsSchema, response: { 200: readyResponseSchema } },
       },
       async (request, reply) => {
         const result = await orderService.markOrderReady(

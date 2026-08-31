@@ -24,7 +24,7 @@ export class OrderService {
   public async markOrderReady(
     request: OrderGatewayRequest,
     orderId: number
-  ): Promise<OrderDetailData> {
+  ): Promise<null> {
     return this.forward(() => this.orderGateway.markOrderReady(request, orderId))
   }
 

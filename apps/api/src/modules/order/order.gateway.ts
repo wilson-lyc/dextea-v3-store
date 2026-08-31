@@ -8,7 +8,7 @@ export interface OrderGatewayRequest {
 export interface OrderGateway {
   getOrderWindow(request: OrderGatewayRequest): Promise<OrderWindowData>
   getOrderDetail(request: OrderGatewayRequest, orderId: number): Promise<OrderDetailData>
-  markOrderReady(request: OrderGatewayRequest, orderId: number): Promise<OrderDetailData>
+  markOrderReady(request: OrderGatewayRequest, orderId: number): Promise<null>
   markOrderCollected(
     request: OrderGatewayRequest,
     orderId: number

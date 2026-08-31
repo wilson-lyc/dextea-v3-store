@@ -3,14 +3,16 @@ import { Check, Clock, Coffee, Loader2 } from "lucide-react"
 
 import { Button } from "@/shared/ui/button"
 import { ScrollArea } from "@/shared/ui/scroll-area"
-import { nextOrderAction, type Order } from "@/features/order/model"
+import { nextOrderAction, type Order, type OrderAction } from "@/features/order/model"
 import { OrderStatusBadge } from "@/features/order/components/order-status-badge"
 
 interface OrderDetailProps {
   order: Order
+  onAction?: (action: OrderAction) => void
+  actionPending?: boolean
 }
 
-export function OrderDetail({ order }: OrderDetailProps) {
+export function OrderDetail({ order, onAction, actionPending }: OrderDetailProps) {
   const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0)
   const action = nextOrderAction(order)
 
@@ -85,9 +87,14 @@ export function OrderDetail({ order }: OrderDetailProps) {
 
       <div className="flex shrink-0 items-center gap-3 border-t bg-background p-4">
         {action && (
-          <Button className="flex-1" disabled={action.disabled}>
-            {action.icon === "loader" && <Loader2 />}
-            {action.icon === "check" && <Check />}
+          <Button
+            className="flex-1"
+            disabled={action.disabled || actionPending}
+            onClick={() => onAction?.(action)}
+          >
+            {actionPending && <Loader2 className="animate-spin" />}
+            {!actionPending && action.icon === "loader" && <Loader2 />}
+            {!actionPending && action.icon === "check" && <Check />}
             {action.label}
           </Button>
         )}

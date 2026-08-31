@@ -79,3 +79,8 @@ export type OrderWindowResponse = z.infer<typeof orderWindowResponseSchema>
 export const orderDetailResponseSchema = upstreamEnvelopeSchema(orderDetailDataSchema)
 
 export type OrderDetailResponse = z.infer<typeof orderDetailResponseSchema>
+
+// 标记制作完成 / 已取餐 等无需业务数据的操作，上游响应 data 为 null
+export const orderReadyUpstreamResponseSchema = upstreamEnvelopeSchema(z.null())
+
+export type OrderReadyUpstreamResponse = z.infer<typeof orderReadyUpstreamResponseSchema>

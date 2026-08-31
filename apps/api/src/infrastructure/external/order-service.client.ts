@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import {
   orderDetailResponseSchema,
+  orderReadyUpstreamResponseSchema,
   orderWindowResponseSchema,
   type OrderDetailData,
   type OrderWindowData,
@@ -65,14 +66,14 @@ export class HttpOrderGateway implements OrderGateway {
   public async markOrderReady(
     request: OrderGatewayRequest,
     orderId: number
-  ): Promise<OrderDetailData> {
+  ): Promise<null> {
     const payload = await this.request(
       request,
       `/api/v1/store/orders/${orderId}/ready`,
       'POST'
     )
-    return this.parseUpstream<OrderDetailData>(
-      orderDetailResponseSchema,
+    return this.parseUpstream<null>(
+      orderReadyUpstreamResponseSchema,
       payload,
       `POST /orders/${orderId}/ready`
     )
