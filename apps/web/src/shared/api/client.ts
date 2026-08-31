@@ -32,10 +32,10 @@ export function setAuthTokenProvider(provider: () => string | null): void {
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options
 
-  const finalHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...headers,
-  }
+  // 无 body 时不能带 application/json 头，否则后端会校验 "Body cannot be empty" 而 400
+  const finalHeaders: Record<string, string> = body === undefined
+    ? { ...headers }
+    : { "Content-Type": "application/json", ...headers }
 
   const token = authTokenProvider()
   if (token) {
