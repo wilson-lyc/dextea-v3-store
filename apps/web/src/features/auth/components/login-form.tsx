@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from "lucide-react"
 import { useState, type FormEvent } from "react"
 
 import type { LoginRequest } from "@dextea/constraints"
@@ -22,6 +23,7 @@ interface LoginFormProps {
 export function LoginForm({ pending, error, onSubmit }: LoginFormProps) {
   const [account, setAccount] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
@@ -48,14 +50,25 @@ export function LoginForm({ pending, error, onSubmit }: LoginFormProps) {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">密码</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="请输入密码"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="请输入密码"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="pr-10"
+                required
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
