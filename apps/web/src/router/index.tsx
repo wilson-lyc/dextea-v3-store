@@ -9,18 +9,18 @@ import LoginPage from "@/pages/login"
 import ProductsPage from "@/pages/admin/products"
 import StoreSettingsPage from "@/pages/admin/settings"
 import CounterPage from "@/pages/counter"
-import PlaceholderPage from "@/pages/placeholder"
+import ScreenPage from "@/pages/screen"
 
 export const routeConfig: RouteObject[] = [
   {
     element: <AppProviders />,
     children: [
       { path: paths.login, element: <LoginPage /> },
-      { path: paths.screen, element: <PlaceholderPage />, handle: { title: "服务大屏" } },
       {
         element: <RequireAuth />,
         children: [
           { path: paths.home, element: <HomePage /> },
+          { path: paths.screen, element: <ScreenPage />, handle: { title: "服务大屏" } },
           {
             path: paths.admin.root,
             element: <AdminLayout />,

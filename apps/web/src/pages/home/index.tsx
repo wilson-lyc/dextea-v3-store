@@ -20,7 +20,6 @@ import { logger } from "@/shared/lib/logger"
 interface Section {
   key: string
   title: string
-  description: string
   icon: typeof Settings
   path: string
 }
@@ -29,21 +28,18 @@ const sections: Section[] = [
   {
     key: "counter",
     title: "前台服务",
-    description: "实时查看门店订单与制作、取餐状态",
     icon: Store,
     path: paths.counter,
   },
   {
     key: "screen",
     title: "服务大屏",
-    description: "叫号取餐与订单状态的大屏实时展示",
     icon: Monitor,
     path: paths.screen,
   },
   {
     key: "admin",
     title: "后台设置",
-    description: "门店信息、商品与员工等基础配置管理",
     icon: Settings,
     path: paths.admin.root,
   },
@@ -116,7 +112,7 @@ export default function HomePage() {
       </header>
 
       <main className="mt-8 grid flex-1 gap-4 md:mt-10 md:grid-cols-3 md:gap-6">
-        {sections.map(({ key, title, description, icon: Icon, path }) => (
+        {sections.map(({ key, title, icon: Icon, path }) => (
           <button
             key={key}
             type="button"
@@ -131,9 +127,6 @@ export default function HomePage() {
             </div>
             <div className="mt-6 md:mt-8">
               <div className="text-xl font-semibold md:text-2xl">{title}</div>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {description}
-              </p>
             </div>
           </button>
         ))}

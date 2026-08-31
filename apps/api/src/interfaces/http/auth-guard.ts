@@ -29,6 +29,14 @@ function resolveRequestPath(url: string): string {
   return queryIndex === -1 ? url : url.slice(0, queryIndex)
 }
 
+// EventSource 无法携带 Authorization 头，SSE 走 ?token= 查询参数
+function extractQueryToken(url: string): string | undefined {
+  const queryIndex = url.indexOf('?')
+  if (queryIndex === -1) return undefined
+  const params = new URLSearchParams(url.slice(queryIndex + 1))
+  return extractBearerToken(params.get('token') ?? undefined)
+}
+
 export function registerAuthGuard(
   app: FastifyInstance,
   tokenService: TokenService,
@@ -43,7 +51,8 @@ export function registerAuthGuard(
       return
     }
 
-    const token = extractBearerToken(request.headers.authorization)
+    const token =
+      extractBearerToken(request.headers.authorization) ?? extractQueryToken(request.url)
 
     if (!token) {
       throw new BizError(commonErrors.UNAUTHORIZED)

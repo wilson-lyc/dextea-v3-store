@@ -24,4 +24,7 @@ export const apiRoutes = {
     ready: (orderId: number) => `/api/v1/store/orders/${orderId}/ready`,
     collect: (orderId: number) => `/api/v1/store/orders/${orderId}/collect`,
   },
+  screen: {
+    events: () => '/api/v1/screen/events',
+  },
 } as const

@@ -3,6 +3,7 @@ import { ArrowLeft, Package, Settings } from "lucide-react"
 
 import { paths } from "@/router/paths"
 import { Button } from "@/shared/ui/button"
+import { PageHeader } from "@/shared/ui/page-header"
 import { cn } from "@/shared/lib/cn"
 
 interface NavItem {
@@ -29,32 +30,30 @@ export function AdminLayout() {
 
   return (
     <div className="flex h-svh flex-col">
-      <header className="flex shrink-0 items-center gap-4 border-b px-6 py-3">
-        <Button variant="ghost" size="icon-sm" onClick={() => navigate(paths.home)}>
-          <ArrowLeft />
-        </Button>
-        <h1 className="text-lg font-semibold tracking-tight">后台设置</h1>
-
-        <nav className="ml-auto flex items-center gap-1">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )
-              }
-            >
-              <Icon className="size-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </header>
+      <PageHeader
+        back
+        onBack={() => navigate(paths.home)}
+        backLabel="返回首页"
+        title="后台设置"
+        actions={navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )
+            }
+          >
+            <Icon className="size-4" />
+            {label}
+          </NavLink>
+        ))}
+        actionsClassName="gap-1"
+      />
 
       <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1">
