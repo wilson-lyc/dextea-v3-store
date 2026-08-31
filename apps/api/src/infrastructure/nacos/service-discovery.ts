@@ -5,6 +5,8 @@ export interface ServiceDiscoveryOptions {
   group: string
   clusters: string
   defaultScheme: 'http' | 'https'
+  /** 查询实例列表的超时时间（毫秒） */
+  queryTimeout?: number
 }
 
 export interface ServiceDiscovery {
@@ -22,12 +24,15 @@ export class NacosServiceDiscovery implements ServiceDiscovery {
 
     try {
       // selectInstances(healthy=true) 已过滤掉不健康、未启用、权重为 0 的实例
-      hosts = await this.client.selectInstances(
-        serviceName,
-        this.options.group,
-        this.options.clusters,
-        true,
-        true
+      hosts = await withTimeout(
+        this.client.selectInstances(
+          serviceName,
+          this.options.group,
+          this.options.clusters,
+          true,
+          true
+        ),
+        this.options.queryTimeout ?? 3_000
       )
     } catch (error) {
       throw new NacosDiscoveryError(`从 Nacos 查询服务 ${serviceName} 的实例列表失败`, {
@@ -39,6 +44,25 @@ export class NacosServiceDiscovery implements ServiceDiscovery {
 
     return selected ? toBaseUrl(selected, this.options.defaultScheme) : null
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`查询超时（${milliseconds}ms）`)),
+      milliseconds
+    )
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      }
+    )
+  })
 }
 
 function pickByWeight(hosts: Host[]): Host | undefined {

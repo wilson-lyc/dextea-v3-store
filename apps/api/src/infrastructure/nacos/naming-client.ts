@@ -68,6 +68,25 @@ async function startNamingClient(): Promise<NamingClient> {
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new NacosDiscoveryError(`等待超时（${milliseconds}ms）`)),
+      milliseconds
+    )
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      }
+    )
+  })
+}
+
 function forwardInternalErrors(instance: NacosNamingClient, logger: Logger): void {
   const { _hostReactor: hostReactor } = instance as unknown as NamingClientInternals
 
@@ -108,7 +127,8 @@ async function createNamingClient(): Promise<NamingClient> {
   forwardInternalErrors(instance, logger)
 
   try {
-    await instance.ready()
+    // nacos SDK 的 ready() 在连不上注册中心时会无限重试，这里加超时避免阻塞调用方
+    await withTimeout(instance.ready(), 5_000)
   } catch (error) {
     void instance.close().catch(() => undefined)
     throw new NacosDiscoveryError(

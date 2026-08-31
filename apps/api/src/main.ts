@@ -44,7 +44,8 @@ async function bootstrap(): Promise<void> {
     logger.error({ error }, '[mq] 订单制作 MQ 启动失败')
   }
 
-  await startNacosDiscovery()
+  // Nacos 解析失败不能阻塞服务启动，地址解析在每次调用订单微服务时会重试
+  void startNacosDiscovery()
 
   let shuttingDown = false
   const shutdown = async (signal: string): Promise<void> => {
