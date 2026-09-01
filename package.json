@@ -3,20 +3,20 @@
   "version": "1.0.0",
   "description": "Dextea store monorepo: backend API service and frontend Web service",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@11.17.0",
   "scripts": {
     "api": "pnpm --filter api run dev",
     "web": "pnpm --filter web run dev",
-    "dev": "pnpm -C packages/constraints build && pnpm -r --parallel dev"
+    "dev": "pnpm -C packages/constraints build && pnpm -r --parallel dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "lint": "pnpm -r --if-present run lint",
+    "test": "pnpm -r --if-present run test",
+    "format": "pnpm -r --if-present run format"
   },
   "engines": {
     "node": ">=18"
   },
-  "license": "UNLICENSED",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "protobufjs",
-      "argon2"
-    ]
-  }
+  "license": "UNLICENSED"
 }

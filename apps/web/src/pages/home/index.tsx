@@ -1,110 +1,134 @@
-import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Monitor, Settings, Store } from "lucide-react"
+import {
+  ArrowRight,
+  Clock,
+  LogOut,
+  MapPin,
+  Monitor,
+  Settings,
+  Store,
+} from "lucide-react"
+import { StoreStatus } from "@dextea/constraints"
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { storeApi } from "@/lib/api/store"
-import { ApiError } from "@/lib/api/request"
-import { clearToken } from "@/lib/session"
-import { logger } from "@/lib/logger"
-import { toast } from "@/lib/toast"
+import { Button } from "@/shared/ui/button"
+import { useStore } from "@/app/store-context"
+import { paths } from "@/router/paths"
+import { clearSession } from "@/features/auth/session"
+import { formatStoreAddress } from "@/features/store/model"
+import { logger } from "@/shared/lib/logger"
 
 interface Section {
   key: string
   title: string
-  description: string
   icon: typeof Settings
   path: string
 }
 
 const sections: Section[] = [
   {
-    key: "admin",
-    title: "后台设置",
-    description: "门店信息、商品与员工等基础配置管理",
-    icon: Settings,
-    path: "/admin",
-  },
-  {
     key: "counter",
     title: "前台服务",
-    description: "实时查看门店订单与制作、取餐状态",
     icon: Store,
-    path: "/counter",
+    path: paths.counter,
   },
   {
     key: "screen",
     title: "服务大屏",
-    description: "叫号取餐与订单状态的大屏实时展示",
     icon: Monitor,
-    path: "/screen",
+    path: paths.screen,
+  },
+  {
+    key: "admin",
+    title: "后台设置",
+    icon: Settings,
+    path: paths.admin.root,
   },
 ]
 
 export default function HomePage() {
-  const [storeName, setStoreName] = useState<string | null>(null)
+  const { store } = useStore()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    let cancelled = false
-    storeApi
-      .getStore()
-      .then((store) => {
-        if (cancelled) return
-        logger.info("获取门店信息成功", store.name)
-        setStoreName(store.name)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        logger.error("获取门店信息失败", err)
-        toast.error(err instanceof ApiError ? err.message : "获取门店信息失败")
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const address = store ? formatStoreAddress(store) : ""
+  const statusColor = store ? StoreStatus.getColor(store.status) : undefined
 
   function handleLogout() {
-    clearToken()
+    clearSession()
     logger.info("已退出登录")
-    navigate("/login", { replace: true })
+    navigate(paths.login, { replace: true })
   }
 
   return (
-    <div className="flex min-h-svh flex-col p-6 md:p-10">
+    <div className="flex h-svh flex-col overflow-hidden bg-gradient-to-b from-muted/60 to-background p-6 md:p-10">
       <header className="flex items-start justify-between gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          你好，{storeName ?? "..."}
-        </h1>
-        <Button variant="outline" size="sm" onClick={handleLogout}>
+        <div className="min-w-0">
+          {store && (
+            <span
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
+              style={{
+                color: statusColor?.text,
+                backgroundColor: statusColor?.background,
+                borderColor: statusColor?.border,
+              }}
+            >
+              <span
+                className="size-1.5 rounded-full"
+                style={{ backgroundColor: statusColor?.text }}
+              />
+              {StoreStatus.getLabel(store.status)}
+            </span>
+          )}
+          <h1 className="mt-3 truncate text-3xl font-semibold tracking-tight md:text-4xl">
+            {store ? store.name : "..."}
+          </h1>
+          {store && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+              {address && (
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <MapPin className="size-4 shrink-0" />
+                  <span className="truncate">{address}</span>
+                </span>
+              )}
+              {store.businessHours && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="size-4 shrink-0" />
+                  <span className="whitespace-nowrap">
+                    {store.businessHours}
+                  </span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={handleLogout}
+        >
+          <LogOut className="size-4" />
           退出登录
         </Button>
       </header>
 
-      <main className="mt-10 grid flex-1 content-start gap-6 md:grid-cols-3">
-        {sections.map(({ key, title, description, icon: Icon, path }) => (
-          <Card
+      <main className="mt-8 grid flex-1 gap-4 md:mt-10 md:grid-cols-3 md:gap-6">
+        {sections.map(({ key, title, icon: Icon, path }) => (
+          <button
             key={key}
-            role="button"
-            tabIndex={0}
+            type="button"
             onClick={() => navigate(path)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault()
-                navigate(path)
-              }
-            }}
-            className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            className="group flex flex-col justify-between rounded-2xl border bg-card p-6 text-left shadow-sm transition hover:border-primary/40 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:p-8"
           >
-            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-              <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Icon className="size-8" />
+            <div className="flex items-start justify-between">
+              <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/20 md:size-14">
+                <Icon className="size-6 md:size-7" />
               </div>
-              <div className="text-xl font-semibold">{title}</div>
-              <p className="text-sm text-muted-foreground">{description}</p>
-            </CardContent>
-          </Card>
+              <ArrowRight className="size-5 text-muted-foreground/40 transition group-hover:translate-x-1 group-hover:text-primary" />
+            </div>
+            <div className="mt-6 md:mt-8">
+              <div className="text-xl font-semibold md:text-2xl">{title}</div>
+            </div>
+          </button>
         ))}
       </main>
     </div>

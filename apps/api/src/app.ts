@@ -1,57 +1,131 @@
 import Fastify, { type FastifyInstance } from 'fastify'
-import cors from '@fastify/cors'
-import { config } from '@/config.js'
-import { db } from '@/shared/database/index.js'
-import { logger } from '@/shared/utils/logger.js'
-import { registerErrorHandler } from '@/shared/interfaces/error-handler.js'
-import { createStoreIdInterceptor } from '@/shared/interfaces/store-id-interceptor.js'
-import { StoreRepository } from '@/repository/store-repository.js'
-import { ProductRepository } from '@/repository/product-repository.js'
-import { CustomizationRepository } from '@/repository/customization-repository.js'
-import { AuthServiceImpl } from '@/service/auth-service.js'
-import { StoreService } from '@/service/store-service.js'
-import { ProductService } from '@/service/product-service.js'
-import { CustomizationService } from '@/service/customization-service.js'
-import { OrderService } from '@/service/order-service.js'
-import { StoreController } from '@/controller/store-controller.js'
-import { ProductController } from '@/controller/product-controller.js'
-import { CustomizationController } from '@/controller/customization-controller.js'
-import { OrderController } from '@/controller/order-controller.js'
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod'
+import { getConfig } from '@/config/index.js'
+import { buildLoggerOptions } from '@/shared/logger.js'
+import { getDatabase } from '@/infrastructure/database/pool.js'
+import { HttpOrderGateway } from '@/infrastructure/external/order-service.client.js'
+import { registerPlugins } from '@/interfaces/http/plugins.js'
+import { registerErrorHandler } from '@/interfaces/http/error-handler.js'
+import { registerAuthGuard } from '@/interfaces/http/auth-guard.js'
+import './interfaces/http/type-augmentation.js'
+import { JwtTokenService, type TokenService } from '@/modules/auth/token.service.js'
+import { StoreCredentialsAuthService } from '@/modules/auth/auth.service.js'
+import { createAuthRoutes } from '@/modules/auth/auth.module.js'
+import {
+  DrizzleStoreRepository,
+  type StoreRepository,
+} from '@/modules/store/store.repository.js'
+import { StoreService } from '@/modules/store/store.service.js'
+import { toStoreView } from '@/modules/store/store.presenter.js'
+import { createStoreRoutes } from '@/modules/store/store.module.js'
+import {
+  DrizzleProductRepository,
+  type ProductRepository,
+} from '@/modules/product/product.repository.js'
+import { ProductService } from '@/modules/product/product.service.js'
+import { createProductRoutes } from '@/modules/product/product.module.js'
+import {
+  DrizzleCustomizationRepository,
+  type CustomizationRepository,
+} from '@/modules/customization/customization.repository.js'
+import { CustomizationService } from '@/modules/customization/customization.service.js'
+import { createCustomizationRoutes } from '@/modules/customization/customization.module.js'
+import { OrderService } from '@/modules/order/order.service.js'
+import { createOrderRoutes } from '@/modules/order/order.module.js'
+import { storeEventHub } from '@/modules/store-event/store-event.service.js'
+import { createStoreEventRoutes } from '@/modules/store-event/store-event.module.js'
+import { createOrderServiceEndpointResolver } from '@/infrastructure/external/order-endpoint.resolver.js'
+import type { OrderGateway } from '@/modules/order/order.gateway.js'
+import type { OrderServiceEndpointResolver } from '@/modules/order/order.endpoint-resolver.js'
 
-export function createApp(): FastifyInstance {
-  const app = Fastify({ logger: false })
+export interface AppDependencies {
+  storeRepository?: StoreRepository
+  productRepository?: ProductRepository
+  customizationRepository?: CustomizationRepository
+  orderGateway?: OrderGateway
+  orderEndpointResolver?: OrderServiceEndpointResolver
+  tokenService?: TokenService
+}
 
-  app.register(cors, {
-    origin: config.corsOrigin,
-    credentials: config.corsCredentials,
-  })
+interface RegisteredModule {
+  prefix: string
+  plugin: ReturnType<typeof createAuthRoutes>
+}
 
-  const storeRepository = new StoreRepository(db)
-  const productRepository = new ProductRepository(db)
-  const customizationRepository = new CustomizationRepository(db)
+async function registerApiModules(
+  app: FastifyInstance,
+  modules: RegisteredModule[]
+): Promise<void> {
+  for (const module of modules) {
+    await app.register(module.plugin, { prefix: module.prefix })
+  }
+}
 
-  const authService = new AuthServiceImpl(storeRepository)
-  const storeService = new StoreService(storeRepository)
-  const productService = new ProductService(productRepository)
-  const customizationService = new CustomizationService(customizationRepository)
-  const orderService = new OrderService()
+export async function buildApp(
+  dependencies: AppDependencies = {}
+): Promise<FastifyInstance> {
+  const config = getConfig()
 
-  const storeController = new StoreController(authService, storeService)
-  const productController = new ProductController(productService)
-  const customizationController = new CustomizationController(customizationService)
-  const orderController = new OrderController(orderService)
+  const app = Fastify({
+    logger: buildLoggerOptions(config.log.level),
+    bodyLimit: 1_048_576,
+    trustProxy: true,
+  }).withTypeProvider<ZodTypeProvider>()
+
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
 
   registerErrorHandler(app)
 
-  app.addHook('preHandler', createStoreIdInterceptor(authService))
-
-  storeController.registerRoutes(app)
-  productController.registerRoutes(app)
-  customizationController.registerRoutes(app)
-  orderController.registerRoutes(app)
+  await registerPlugins(app)
 
   app.get('/health', async () => ({ status: 'ok' }))
 
-  logger.info('Fastify 应用已构建')
+  const storeRepository =
+    dependencies.storeRepository ?? new DrizzleStoreRepository(getDatabase())
+  const productRepository =
+    dependencies.productRepository ?? new DrizzleProductRepository(getDatabase())
+  const customizationRepository =
+    dependencies.customizationRepository ??
+    new DrizzleCustomizationRepository(getDatabase())
+  const orderEndpointResolver =
+    dependencies.orderEndpointResolver ?? createOrderServiceEndpointResolver()
+  const orderGateway =
+    dependencies.orderGateway ?? new HttpOrderGateway(orderEndpointResolver)
+
+  const tokenService = dependencies.tokenService ?? new JwtTokenService()
+  const authService = new StoreCredentialsAuthService(storeRepository, tokenService)
+  const storeService = new StoreService(storeRepository)
+  const productService = new ProductService(productRepository)
+  const customizationService = new CustomizationService(customizationRepository)
+  const orderService = new OrderService(orderGateway)
+
+  // 注册在插件之后：CORS 预检（OPTIONS）需先于鉴权拦截器处理
+  registerAuthGuard(app, tokenService)
+
+  const modules: RegisteredModule[] = [
+    { prefix: '/api/v1/auth', plugin: createAuthRoutes({ authService, toStoreView }) },
+    { prefix: '/api/v1/store', plugin: createStoreRoutes({ storeService }) },
+    { prefix: '/api/v1/products', plugin: createProductRoutes({ productService }) },
+    {
+      prefix: '/api/v1/products',
+      plugin: createCustomizationRoutes({ customizationService }),
+    },
+    { prefix: '/api/v1/store', plugin: createOrderRoutes({ orderService }) },
+    { prefix: '/api/v1/store', plugin: createStoreEventRoutes({ storeEventHub }) },
+  ]
+
+  await registerApiModules(app, modules)
+
+  app.addHook('onClose', async () => {
+    app.log.info('[app] Fastify 应用已关闭')
+  })
+
+  app.log.info(`[app] Fastify 应用已构建 (${config.nodeEnv})`)
+
   return app
 }

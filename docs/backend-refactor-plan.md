@@ -1,5 +1,11 @@
 # 后端代码目录结构重构方案
 
+> **⚠️ 本文档已被 [`backend-improvement-proposals.md`](./backend-improvement-proposals.md) 取代，且其中的方案已实施完成。**
+>
+> 该文档只覆盖"目录结构迁移"这一项，未涉及接口契约断裂、鉴权缺失、错误处理语义错配等更严重的问题；目标结构也已按新文档落地为
+> `config/`、`modules/`、`infrastructure/`、`interfaces/http/`、`shared/` 五层。
+> **请以 `backend-improvement-proposals.md` 为准，本文仅作历史存档。**
+
 > 适用范围：`apps/api/src`
 > 目标：在不改变对外接口行为（API 路由、配置项、数据库表结构）的前提下，将现有“按技术类型分层”的扁平目录，重构为“按业务领域（DDD 风格的 module/feature 结构）”，提升可维护性、可扩展性与可读性。
 

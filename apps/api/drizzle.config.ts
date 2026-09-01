@@ -4,8 +4,9 @@ import { defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
   dialect: 'mysql',
-  schema: './src/shared/database/schema.ts',
-  out: './drizzle',
+  // schema.ts 由 `pnpm --filter api db:pull` 生成，请勿手工编辑
+  schema: './src/infrastructure/database/schema.ts',
+  out: './src/infrastructure/database',
   dbCredentials: {
     host: process.env.DB_HOST!,
     port: Number(process.env.DB_PORT),
