@@ -1,8 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
-import { ArrowLeft, Package, Settings } from "lucide-react"
+import { Package, Settings } from "lucide-react"
 
 import { paths } from "@/router/paths"
-import { Button } from "@/shared/ui/button"
 import { PageHeader } from "@/shared/ui/page-header"
 import { cn } from "@/shared/lib/cn"
 

@@ -33,8 +33,6 @@ export interface MqConfig {
   secretKey: string
   topic: string
   consumerGroup: string
-  /** 消费过滤 Tag，仅 screen MQ 使用 */
-  tag?: string
 }
 
 export interface AppConfig {
@@ -65,7 +63,6 @@ export interface AppConfig {
   nacos: NacosConfig
   mq: {
     orderMaking: MqConfig
-    screenReady: MqConfig
   }
 }
 
@@ -144,16 +141,6 @@ function buildConfig(env: Env): AppConfig {
         secretKey: env.ORDER_MAKING_MQ_SECRET_KEY,
         topic: env.ORDER_MAKING_MQ_TOPIC,
         consumerGroup: env.ORDER_MAKING_MQ_CONSUMER_GROUP,
-      },
-      screenReady: {
-        enabled: env.SCREEN_READY_MQ_ENABLED,
-        endpoints: env.SCREEN_READY_MQ_ENDPOINTS,
-        namespace: env.SCREEN_READY_MQ_NAMESPACE,
-        accessKey: env.SCREEN_READY_MQ_ACCESS_KEY,
-        secretKey: env.SCREEN_READY_MQ_SECRET_KEY,
-        topic: env.SCREEN_READY_MQ_TOPIC,
-        consumerGroup: env.SCREEN_READY_MQ_CONSUMER_GROUP,
-        tag: env.SCREEN_READY_MQ_TAG,
       },
     },
   }

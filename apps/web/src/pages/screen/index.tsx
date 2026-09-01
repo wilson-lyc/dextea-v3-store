@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useReducer, useState } from "react"
 
-import { useScreenEvents, type ScreenEventPayload } from "@/features/screen/hooks/use-screen-events"
+import { orderMakingEventTags, storeEventTypes, type StoreEvent } from "@dextea/constraints"
+
+import { useStoreEvents } from "@/features/store-event/hooks/use-store-events"
 
 interface ScreenSlot {
   number: string
@@ -12,7 +14,6 @@ interface ScreenQueue {
   recent: string[]
 }
 
-// 大屏数据由后端 SSE 事件流驱动（MQ 出餐消息 → ready 事件）
 const READY_CAPACITY = 12
 const RECENT_CAPACITY = 8
 
@@ -22,34 +23,23 @@ function moveToRecent(recent: string[], numbers: string[]): string[] {
   return [...recent, ...numbers].slice(-RECENT_CAPACITY)
 }
 
-function queueReducer(state: ScreenQueue, event: ScreenEventPayload): ScreenQueue {
-  switch (event.type) {
-    case "snapshot": {
-      return {
-        ready: (event.ready ?? []).map((number) => ({ number, calledAt: Date.now() })),
-        recent: [],
-      }
+function queueReducer(state: ScreenQueue, event: StoreEvent): ScreenQueue {
+  if (event.type === storeEventTypes.SNAPSHOT) {
+    return {
+      ready: event.ready.map((number) => ({ number, calledAt: Date.now() })),
+      recent: [],
     }
-    case "ready": {
-      const { number } = event
-      if (!number || state.ready.some((slot) => slot.number === number)) return state
-      const ready = [...state.ready, { number, calledAt: Date.now() }]
-      const overflow = ready.length > READY_CAPACITY ? ready.slice(0, ready.length - READY_CAPACITY) : []
-      return {
-        ready: ready.slice(-READY_CAPACITY),
-        recent: moveToRecent(state.recent, overflow.map((slot) => slot.number)),
-      }
-    }
-    case "collected": {
-      const { number } = event
-      if (!number) return state
-      return {
-        ready: state.ready.filter((slot) => slot.number !== number),
-        recent: moveToRecent(state.recent, [number]),
-      }
-    }
-    default:
-      return state
+  }
+
+  if (event.tag !== orderMakingEventTags.PREPARING_TO_READY) return state
+
+  const { pickupCode } = event
+  if (!pickupCode || state.ready.some((slot) => slot.number === pickupCode)) return state
+  const ready = [...state.ready, { number: pickupCode, calledAt: Date.now() }]
+  const overflow = ready.length > READY_CAPACITY ? ready.slice(0, ready.length - READY_CAPACITY) : []
+  return {
+    ready: ready.slice(-READY_CAPACITY),
+    recent: moveToRecent(state.recent, overflow.map((slot) => slot.number)),
   }
 }
 
@@ -69,7 +59,7 @@ function useNow(intervalMs = 1000) {
 export default function ScreenPage() {
   const now = useNow()
   const [queue, dispatch] = useReducer(queueReducer, EMPTY_QUEUE)
-  const connection = useScreenEvents(dispatch)
+  const connection = useStoreEvents(dispatch)
 
   const latest = queue.ready.at(-1) ?? null
   const waiting = useMemo(() => queue.ready.slice(0, -1).reverse(), [queue.ready])

@@ -1,19 +1,20 @@
 import type { ServerResponse } from 'node:http'
 import type { FastifyPluginAsync } from 'fastify'
+import type { StoreEvent } from '@dextea/constraints'
 import { getConfig } from '@/config/index.js'
 import { getLogger } from '@/shared/logger.js'
-import type { ScreenEvent, ScreenEventHub } from './screen.service.js'
+import type { StoreEventHub } from './store-event.service.js'
 
-export interface ScreenModuleOptions {
-  screenEventHub: ScreenEventHub
+export interface StoreEventModuleOptions {
+  storeEventHub: StoreEventHub
 }
 
-/**
- * 服务大屏 SSE 通道：GET /events
- * 事件类型：snapshot（重连时全量）/ ready / collected
- */
-export function createScreenRoutes(options: ScreenModuleOptions): FastifyPluginAsync {
-  const { screenEventHub } = options
+const HEARTBEAT_INTERVAL_MS = 15_000
+
+export function createStoreEventRoutes(
+  options: StoreEventModuleOptions
+): FastifyPluginAsync {
+  const { storeEventHub } = options
 
   return async (app) => {
     app.get('/events', { schema: { hide: true } }, async (request, reply) => {
@@ -38,35 +39,37 @@ export function createScreenRoutes(options: ScreenModuleOptions): FastifyPluginA
         ...extraHeaders,
       })
       reply.raw.write(`retry: 3000\n\n`)
-      writeEvent(reply.raw, screenEventHub.currentSnapshot())
 
-      const send = (event: ScreenEvent) => writeEvent(reply.raw, event)
-      const unsubscribe = screenEventHub.subscribe(send)
+      const storeId = request.storeId
+      if (storeId === undefined) {
+        reply.raw.destroy()
+        return reply
+      }
+
+      writeEvent(reply.raw, storeEventHub.snapshot(storeId))
+
+      const send = (event: StoreEvent) => writeEvent(reply.raw, event)
+      const unsubscribe = storeEventHub.subscribe(storeId, send)
 
       const heartbeat = setInterval(() => {
         reply.raw.write(`: ping\n\n`)
-      }, 15_000)
+      }, HEARTBEAT_INTERVAL_MS)
 
-      requestLog(log, '大屏客户端已接入')
+      log.info(`[store-event] 门店(${storeId})客户端已接入`)
       const close = () => {
         clearInterval(heartbeat)
         unsubscribe()
-        requestLog(log, '大屏客户端已断开')
+        log.info(`[store-event] 门店(${storeId})客户端已断开`)
       }
       reply.raw.on('close', close)
       reply.raw.on('error', close)
 
-      // 挂起请求直到连接关闭，避免 Fastify 走默认 JSON 响应
       await new Promise<void>(() => {})
     })
   }
 }
 
-function writeEvent(res: ServerResponse, event: ScreenEvent): void {
+function writeEvent(res: ServerResponse, event: StoreEvent): void {
   res.write(`event: ${event.type}\n`)
   res.write(`data: ${JSON.stringify(event)}\n\n`)
-}
-
-function requestLog(log: ReturnType<typeof getLogger>, message: string): void {
-  log.info(`[screen] ${message}`)
 }

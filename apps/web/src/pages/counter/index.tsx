@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
+import { orderMakingEventTags, storeEventTypes } from "@dextea/constraints"
+
 import { Button } from "@/shared/ui/button"
 import { PageHeader } from "@/shared/ui/page-header"
 import { useStore } from "@/app/store-context"
@@ -9,13 +11,14 @@ import {
   ORDER_TABS,
   countOrders,
   isCounterVisible,
+  mapOrderStatusEvent,
   type OrderTabKey,
 } from "@/features/order/model"
 import { useOrderWindow } from "@/features/order/hooks/use-order-window"
 import { useOrderDetail } from "@/features/order/hooks/use-order-detail"
 import { useOrderReady } from "@/features/order/hooks/use-order-ready"
 import { useOrderCollect } from "@/features/order/hooks/use-order-collect"
-import { useOrderEvents } from "@/features/order/hooks/use-order-events"
+import { useStoreEvents } from "@/features/store-event/hooks/use-store-events"
 import { OrderList } from "@/features/order/components/order-list"
 import {
   OrderDetail,
@@ -28,7 +31,7 @@ export default function CounterPage() {
   const [tab, setTab] = useState<OrderTabKey>("all")
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const { orders: allOrders, loading, setOrders } = useOrderWindow()
+  const { orders: allOrders, loading, reload, setOrders } = useOrderWindow()
 
   const visibleOrders = useMemo(
     () => allOrders.filter(isCounterVisible),
@@ -55,14 +58,22 @@ export default function CounterPage() {
   const orderReady = useOrderReady({ setOrders, reloadDetail })
   const orderCollect = useOrderCollect({ setOrders, reloadDetail })
 
-  // SSE 收到新订单：只把卡片插到列表最前面。
-  // 用户尚未手动点选时，把选中项钉在原来的第一单上，右侧详情保持不变，
-  // 直到人工点击卡片后才切换过去。
-  useOrderEvents((updater) => {
+  useStoreEvents((event) => {
+    if (event.type !== storeEventTypes.ORDER_STATUS) return
+    if (event.tag !== orderMakingEventTags.PENDING_TO_PREPARING) return
+
+    const order = mapOrderStatusEvent(event)
     if (selectedId === null && orders[0]) {
       setSelectedId(orders[0].id)
     }
-    setOrders(updater)
+    setOrders((prev) => {
+      const current = prev ?? []
+      const existing = current.findIndex((item) => item.id === order.id)
+      if (existing === -1) return [order, ...current]
+      const next = [...current]
+      next[existing] = order
+      return next
+    })
   }, reload)
 
   return (

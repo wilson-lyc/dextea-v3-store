@@ -1,35 +1,46 @@
+import { orderStatusEventSchema, type OrderStatusEvent } from '@dextea/constraints'
 import { getConfig } from '@/config/index.js'
 import { getLogger } from '@/shared/logger.js'
-import { orderEventHub, type OrderStatusEvent } from '@/modules/order/order-events.service.js'
-import { ConsumeResult, createMqClient, sendMqMessage } from './client.js'
+import { storeEventHub } from '@/modules/store-event/store-event.service.js'
+import { ConsumeResult, createMqClient } from './client.js'
 import type { MessageView } from 'rocketmq-client-nodejs'
-import type { MqClient, MqMessage, MqSubscription } from './types.js'
+import type { MqClient, MqSubscription } from './types.js'
 
 const logger = getLogger()
-
-const PENDING_TO_PREPARING_TAG = 'PENDING_TO_PREPARING'
 
 let client: MqClient | null = null
 
 function parseOrderStatusEvent(message: MessageView): OrderStatusEvent | null {
   const tag = message.getTag()
-  if (tag !== PENDING_TO_PREPARING_TAG) return null
 
+  let body: unknown
   try {
-    const payload = JSON.parse(message.getBody().toString('utf8')) as Partial<OrderStatusEvent>
-    if (
-      typeof payload.orderId !== 'number' ||
-      typeof payload.storeId !== 'number' ||
-      typeof payload.orderNo !== 'string'
-    ) {
-      logger.warn({ tag }, '[MQ:order-making] 消息体缺少关键字段，已忽略')
-      return null
-    }
-    return payload as OrderStatusEvent
+    body = JSON.parse(message.getBody().toString('utf8'))
   } catch (error) {
-    logger.error({ error }, '[MQ:order-making] 消息体解析失败')
+    logger.error(
+      { error, messageId: message.getMessageId() },
+      '[MQ:order-making] 消息体解析失败'
+    )
     return null
   }
+
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    logger.warn(
+      { messageId: message.getMessageId(), tag },
+      '[MQ:order-making] 消息体不是对象，已忽略'
+    )
+    return null
+  }
+
+  const parsed = orderStatusEventSchema.safeParse({ ...body, tag })
+  if (!parsed.success) {
+    logger.warn(
+      { messageId: message.getMessageId(), tag, issues: parsed.error.issues },
+      '[MQ:order-making] 消息体缺少关键字段或 tag 不受支持，已忽略'
+    )
+    return null
+  }
+  return parsed.data
 }
 
 function buildSubscriptions(topic: string): MqSubscription[] {
@@ -37,24 +48,18 @@ function buildSubscriptions(topic: string): MqSubscription[] {
     {
       topic,
       handler: async (message) => {
-        logger.info(`[MQ:order-making] received message ${message.getMessageId()}`)
-
         const event = parseOrderStatusEvent(message)
-        if (event) {
-          orderEventHub.publish(event.storeId, event)
-          logger.info(
-            { orderNo: event.orderNo, storeId: event.storeId },
-            '[MQ:order-making] PENDING_TO_PREPARING 已推送至门店 SSE'
-          )
-        }
+        if (!event) return ConsumeResult.SUCCESS
+
+        storeEventHub.publish(event)
+        logger.info(
+          { tag: event.tag, orderNo: event.orderNo, storeId: event.storeId },
+          '[MQ:order-making] 订单状态消息已推送至门店 SSE'
+        )
         return ConsumeResult.SUCCESS
       },
     },
   ]
-}
-
-export function isOrderMakingMqEnabled(): boolean {
-  return getConfig().mq.orderMaking.enabled
 }
 
 export async function startOrderMakingMq(): Promise<void> {
@@ -77,16 +82,4 @@ export async function stopOrderMakingMq(): Promise<void> {
   if (!client) return
   await client.shutdown()
   client = null
-}
-
-export async function publishOrderMakingMessage(message: MqMessage): Promise<string> {
-  if (!client) {
-    throw new Error('[MQ:order-making] client not started')
-  }
-  const receipt = await sendMqMessage(
-    client.producer,
-    getConfig().mq.orderMaking.topic,
-    message
-  )
-  return receipt.messageId
 }

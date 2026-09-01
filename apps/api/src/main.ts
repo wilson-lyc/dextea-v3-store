@@ -6,10 +6,6 @@ import {
   stopOrderMakingMq,
 } from '@/infrastructure/mq/order-making.js'
 import {
-  startScreenReadyMq,
-  stopScreenReadyMq,
-} from '@/infrastructure/mq/screen-events.js'
-import {
   closeNacosNamingClient,
   getNacosNamingClient,
   isNacosDiscoveryEnabled,
@@ -45,13 +41,7 @@ async function bootstrap(): Promise<void> {
   try {
     await startOrderMakingMq()
   } catch (error) {
-    logger.error({ error }, '[mq] 订单制作 MQ 启动失败')
-  }
-
-  try {
-    await startScreenReadyMq()
-  } catch (error) {
-    logger.error({ error }, '[mq] 大屏出餐 MQ 启动失败')
+    logger.error({ error }, '[mq] 订单状态 MQ 启动失败')
   }
 
   // Nacos 解析失败不能阻塞服务启动，地址解析在每次调用订单微服务时会重试
@@ -65,7 +55,6 @@ async function bootstrap(): Promise<void> {
     logger.info({ signal }, '[main] 正在关闭服务...')
 
     await stopOrderMakingMq().catch(() => undefined)
-    await stopScreenReadyMq().catch(() => undefined)
     await app.close().catch(() => undefined)
     await closeNacosNamingClient()
     await closeDatabase().catch(() => undefined)

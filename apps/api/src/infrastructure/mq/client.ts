@@ -1,16 +1,13 @@
 import {
-  Producer,
   PushConsumer,
   FilterExpression,
   ConsumeResult,
   type MessageView,
   type SessionCredentials,
-  type MessageOptions,
-  type SendReceipt,
 } from 'rocketmq-client-nodejs'
 import { getLogger } from '@/shared/logger.js'
 import type { MqConfig } from '@/config/index.js'
-import type { MqClient, MqMessage, MqSubscription } from './types.js'
+import type { MqClient, MqSubscription } from './types.js'
 
 const logger = getLogger()
 
@@ -21,33 +18,16 @@ function buildSessionCredentials(mqConfig: MqConfig): SessionCredentials {
   }
 }
 
-function toMessageOptions(message: MqMessage): MessageOptions {
-  const body = Buffer.isBuffer(message.body) ? message.body : Buffer.from(message.body)
-  return {
-    topic: '',
-    body,
-    tag: message.tag,
-    keys: message.keys,
-    messageGroup: message.messageGroup,
-    properties: message.properties,
-    delay: message.delay,
-    deliveryTimestamp: message.deliveryTimestamp,
-  }
-}
-
+/**
+ * 本服务只消费订单状态消息、不生产消息，因此只建立 PushConsumer，
+ * 不再创建闲置的 Producer 连接。
+ */
 export function createMqClient(options: {
   config: MqConfig
   subscriptions: MqSubscription[]
 }): MqClient {
   const { config: mqConfig, subscriptions } = options
   const sessionCredentials = buildSessionCredentials(mqConfig)
-
-  const producer = new Producer({
-    endpoints: mqConfig.endpoints,
-    namespace: mqConfig.namespace,
-    sessionCredentials,
-    topic: mqConfig.topic,
-  })
 
   const subscriptionMap = new Map<string, FilterExpression | string>()
   for (const subscription of subscriptions) {
@@ -73,28 +53,15 @@ export function createMqClient(options: {
   })
 
   return {
-    producer,
     async start() {
-      await producer.startup()
       await consumer.startup()
-      logger.info(`[MQ] ${mqConfig.topic} producer & consumer started`)
+      logger.info(`[MQ] ${mqConfig.topic} consumer started`)
     },
     async shutdown() {
-      await producer.shutdown()
       await consumer.shutdown()
-      logger.info(`[MQ] ${mqConfig.topic} producer & consumer stopped`)
+      logger.info(`[MQ] ${mqConfig.topic} consumer stopped`)
     },
   }
-}
-
-export function sendMqMessage(
-  producer: Producer,
-  topic: string,
-  message: MqMessage
-): Promise<SendReceipt> {
-  const options = toMessageOptions(message)
-  options.topic = topic
-  return producer.send(options)
 }
 
 export { ConsumeResult }

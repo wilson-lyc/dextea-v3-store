@@ -3,6 +3,7 @@ import {
   OrderMakingStatus,
   OrderPaymentStatus,
   type OrderDetailData,
+  type OrderStatusEvent,
   type OrderWindowItem,
 } from "@dextea/constraints"
 
@@ -202,26 +203,7 @@ export function mapOrderDetail(detail: OrderDetailData): Order {
   }
 }
 
-/** SSE 推送的订单状态变更消息（tag=PENDING_TO_PREPARING），字段与 MQ 消息体一致 */
-export interface OrderStatusEventMessage {
-  orderId: number
-  orderNo: string
-  storeId: number
-  fromStatus: number
-  toStatus: number
-  makingStatus: number
-  paymentStatus: number
-  pickupCode: string
-  totalPrice: number
-  totalQuantity: number
-  createdAt: string
-}
-
-/**
- * MQ 消息不含商品明细与用餐方式，仅够渲染左侧订单卡片；
- * 点击卡片后详情由右侧按 orderId 拉取完整数据。
- */
-export function mapOrderStatusEvent(event: OrderStatusEventMessage): Order {
+export function mapOrderStatusEvent(event: OrderStatusEvent): Order {
   return {
     id: String(event.orderId),
     orderNo: event.orderNo,

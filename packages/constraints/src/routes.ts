@@ -6,6 +6,7 @@ export const apiRoutes = {
     current: () => '/api/v1/store/',
     status: () => '/api/v1/store/status',
     password: () => '/api/v1/store/password',
+    events: () => '/api/v1/store/events',
   },
   product: {
     list: () => '/api/v1/products/',
@@ -20,12 +21,8 @@ export const apiRoutes = {
   },
   order: {
     window: () => '/api/v1/store/orders/window',
-    events: () => '/api/v1/store/orders/events',
     detail: (orderId: number) => `/api/v1/store/orders/${orderId}`,
     ready: (orderId: number) => `/api/v1/store/orders/${orderId}/ready`,
     collect: (orderId: number) => `/api/v1/store/orders/${orderId}/collect`,
-  },
-  screen: {
-    events: () => '/api/v1/screen/events',
   },
 } as const

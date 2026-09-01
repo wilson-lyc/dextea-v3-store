@@ -183,12 +183,27 @@ cp apps/api/.env.example apps/api/.env
 | `POST` | `/api/v1/products/batch/store-status` | 是 | 批量设置可售状态 |
 | `GET` | `/api/v1/products/:productId/customizations` | 是 | 商品客制化项 |
 | `PATCH` | `/api/v1/products/customizations/options/:optionId/store-status` | 是 | 更新客制化选项门店状态 |
+| `GET` | `/api/v1/store/events` | 是 | 门店事件流（SSE） |
 | `GET` | `/api/v1/store/orders/window` | 是 | 订单看板 |
 | `GET` | `/api/v1/store/orders/:orderId` | 是 | 订单详情 |
 | `POST` | `/api/v1/store/orders/:orderId/ready` | 是 | 标记制作完成 |
 | `POST` | `/api/v1/store/orders/:orderId/collect` | 是 | 标记已取餐 |
 
 路径常量统一由 `packages/constraints` 的 `apiRoutes` 导出，前端直接使用，避免手写字符串导致契约漂移。
+
+### 门店事件流（SSE）
+
+`GET /api/v1/store/events` 是前台服务页与服务大屏共用的**唯一一条** SSE 连接，按 JWT 中的门店身份推送：
+
+- 连接建立先下发一条 `snapshot`（当前待取餐取餐码），大屏断线重连后据此恢复画面；
+- 订单微服务的两种 MQ tag 由**同一个消费者**接收，tag 追加进消息体后以 `order-status` 事件下发：
+
+| tag | 含义 | 消费方 |
+| --- | --- | --- |
+| `PENDING_TO_PREPARING` | 待制作 → 制作中 | 前台服务页（插入/更新订单卡片，通知门店开始制作） |
+| `PREPARING_TO_READY` | 制作中 → 制作完成 | 服务大屏（展示取餐码） |
+
+事件结构与 tag 常量定义在 `packages/constraints/src/dto/store-event.ts`，前后端共用同一份契约；新增状态只需加一个 tag，无需新增消费者或连接。
 
 ## 质量保障
 

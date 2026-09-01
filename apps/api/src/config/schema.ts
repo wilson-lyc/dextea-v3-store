@@ -35,14 +35,6 @@ const mqEnvSchema = z.object({
   ORDER_MAKING_MQ_SECRET_KEY: z.string().default(''),
   ORDER_MAKING_MQ_TOPIC: z.string().default(''),
   ORDER_MAKING_MQ_CONSUMER_GROUP: z.string().default(''),
-  SCREEN_READY_MQ_ENABLED: booleanFromEnv(),
-  SCREEN_READY_MQ_ENDPOINTS: z.string().default(''),
-  SCREEN_READY_MQ_NAMESPACE: z.string().default(''),
-  SCREEN_READY_MQ_ACCESS_KEY: z.string().default(''),
-  SCREEN_READY_MQ_SECRET_KEY: z.string().default(''),
-  SCREEN_READY_MQ_TOPIC: z.string().default(''),
-  SCREEN_READY_MQ_CONSUMER_GROUP: z.string().default(''),
-  SCREEN_READY_MQ_TAG: z.string().default('PREPARING_TO_READY'),
 })
 
 export const envSchema = z
