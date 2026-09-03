@@ -46,8 +46,6 @@ export function createStoreEventRoutes(
         return reply
       }
 
-      writeEvent(reply.raw, storeEventHub.snapshot(storeId))
-
       const send = (event: StoreEvent) => writeEvent(reply.raw, event)
       const unsubscribe = storeEventHub.subscribe(storeId, send)
 

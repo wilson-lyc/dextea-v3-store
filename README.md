@@ -185,6 +185,7 @@ cp apps/api/.env.example apps/api/.env
 | `PATCH` | `/api/v1/products/customizations/options/:optionId/store-status` | 是 | 更新客制化选项门店状态 |
 | `GET` | `/api/v1/store/events` | 是 | 门店事件流（SSE） |
 | `GET` | `/api/v1/store/orders/window` | 是 | 订单看板 |
+| `GET` | `/api/v1/store/orders/making-board` | 是 | 制作看板（制作中 / 待取餐取餐码与统计） |
 | `GET` | `/api/v1/store/orders/:orderId` | 是 | 订单详情 |
 | `POST` | `/api/v1/store/orders/:orderId/ready` | 是 | 标记制作完成 |
 | `POST` | `/api/v1/store/orders/:orderId/collect` | 是 | 标记已取餐 |
@@ -195,7 +196,7 @@ cp apps/api/.env.example apps/api/.env
 
 `GET /api/v1/store/events` 是前台服务页与服务大屏共用的**唯一一条** SSE 连接，按 JWT 中的门店身份推送：
 
-- 连接建立先下发一条 `snapshot`（当前待取餐取餐码），大屏断线重连后据此恢复画面；
+- 本服务**无状态**：只做 MQ → SSE 扇出，不缓存任何订单队列数据。制作中 / 待取餐的权威数据在订单微服务，前端通过 `GET /api/v1/store/orders/making-board` 初始化并轮询对账，轮询结果直接覆盖本地状态；
 - 订单微服务的两种 MQ tag 由**同一个消费者**接收，tag 追加进消息体后以 `order-status` 事件下发：
 
 | tag | 含义 | 消费方 |

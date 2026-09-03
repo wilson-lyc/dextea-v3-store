@@ -2,7 +2,6 @@ import { useEffect, useMemo, useReducer, useState } from "react"
 
 import {
   orderMakingEventTags,
-  storeEventTypes,
   type OrderMakingBoardData,
   type StoreEvent,
 } from "@dextea/constraints"
@@ -46,16 +45,12 @@ function moveToRecent(recent: string[], numbers: string[]): string[] {
   return [...recent, ...numbers].slice(-RECENT_CAPACITY)
 }
 
-// 用权威取餐码列表重建队列，已在屏上的保留原叫号时间，避免叫号动画被无意义重置
-function syncSlots(previous: ScreenSlot[], numbers: string[]): ScreenSlot[] {
-  const calledAtByNumber = new Map(previous.map((slot) => [slot.number, slot.calledAt]))
-  return numbers.map((number) => ({
-    number,
-    calledAt: calledAtByNumber.get(number) ?? Date.now(),
-  }))
+function toSlots(numbers: string[]): ScreenSlot[] {
+  return numbers.map((number) => ({ number, calledAt: Date.now() }))
 }
 
 function queueReducer(state: ScreenQueue, action: ScreenAction): ScreenQueue {
+  // 看板是权威全量，轮询结果直接覆盖，不做与旧结果的合并
   if (action.type === "board") {
     const {
       preparingPickupCodes,
@@ -65,21 +60,12 @@ function queueReducer(state: ScreenQueue, action: ScreenAction): ScreenQueue {
     } = action.board
 
     return {
-      ready: syncSlots(state.ready, readyPickupCodes).slice(-READY_CAPACITY),
+      ready: toSlots(readyPickupCodes).slice(-READY_CAPACITY),
       recent: state.recent,
       making: preparingPickupCodes.slice(-MAKING_CAPACITY),
       preparingOrderCount,
       preparingProductQuantity,
       boardSynced: true,
-    }
-  }
-
-  if (action.type === storeEventTypes.SNAPSHOT) {
-    return {
-      ...state,
-      ready: syncSlots(state.ready, action.ready).slice(-READY_CAPACITY),
-      recent: [],
-      making: action.making.slice(-MAKING_CAPACITY),
     }
   }
 

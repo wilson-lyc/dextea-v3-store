@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 export const storeEventTypes = {
-  SNAPSHOT: 'snapshot',
   ORDER_STATUS: 'order-status',
 } as const
 
@@ -33,18 +32,10 @@ export const orderStatusEventSchema = z.object({
 
 export type OrderStatusEvent = z.infer<typeof orderStatusEventSchema>
 
-export const storeSnapshotEventSchema = z.object({
-  type: z.literal(storeEventTypes.SNAPSHOT),
-  ready: z.array(z.string()),
-  making: z.array(z.string()),
-})
-
-export type StoreSnapshotEvent = z.infer<typeof storeSnapshotEventSchema>
-
 export const storeOrderStatusEventSchema = orderStatusEventSchema.extend({
   type: z.literal(storeEventTypes.ORDER_STATUS),
 })
 
 export type StoreOrderStatusEvent = z.infer<typeof storeOrderStatusEventSchema>
 
-export type StoreEvent = StoreSnapshotEvent | StoreOrderStatusEvent
+export type StoreEvent = StoreOrderStatusEvent

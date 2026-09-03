@@ -8,7 +8,7 @@ import { logger } from "@/shared/lib/logger"
 
 export type StoreEventConnection = "connecting" | "live" | "offline"
 
-const EVENT_TYPES = [storeEventTypes.SNAPSHOT, storeEventTypes.ORDER_STATUS]
+const EVENT_TYPES = [storeEventTypes.ORDER_STATUS]
 
 export function useStoreEvents(
   onEvent: (event: StoreEvent) => void,
