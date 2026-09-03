@@ -9,10 +9,12 @@ import { getLogger } from '@/shared/logger.js'
 export type StoreEventListener = (event: StoreEvent) => void
 
 const MAX_READY = 30
+const MAX_MAKING = 30
 
 export class StoreEventHub {
   private subscribers = new Map<number, Set<StoreEventListener>>()
   private readyByStore = new Map<number, string[]>()
+  private makingByStore = new Map<number, string[]>()
 
   subscribe(storeId: number, listener: StoreEventListener): () => void {
     this.listenersOf(storeId).add(listener)
@@ -23,11 +25,16 @@ export class StoreEventHub {
     return {
       type: storeEventTypes.SNAPSHOT,
       ready: [...(this.readyByStore.get(storeId) ?? [])],
+      making: [...(this.makingByStore.get(storeId) ?? [])],
     }
   }
 
   publish(event: OrderStatusEvent): void {
+    if (event.tag === orderMakingEventTags.PENDING_TO_PREPARING) {
+      this.markMaking(event.storeId, event.pickupCode)
+    }
     if (event.tag === orderMakingEventTags.PREPARING_TO_READY) {
+      this.unmarkMaking(event.storeId, event.pickupCode)
       this.markReady(event.storeId, event.pickupCode)
     }
     this.dispatch(event.storeId, { ...event, type: storeEventTypes.ORDER_STATUS })
@@ -56,6 +63,27 @@ export class StoreEventHub {
     const ready = this.readyByStore.get(storeId) ?? []
     if (ready.includes(pickupCode)) return
     this.readyByStore.set(storeId, [...ready, pickupCode].slice(-MAX_READY))
+  }
+
+  private markMaking(storeId: number, pickupCode: string): void {
+    if (!pickupCode) return
+    const making = this.makingByStore.get(storeId) ?? []
+    if (making.includes(pickupCode)) return
+    this.makingByStore.set(storeId, [...making, pickupCode].slice(-MAX_MAKING))
+  }
+
+  private unmarkMaking(storeId: number, pickupCode: string): void {
+    if (!pickupCode) return
+    const making = this.makingByStore.get(storeId)
+    if (!making) return
+
+    const next = making.filter((number) => number !== pickupCode)
+    if (next.length === making.length) return
+    if (next.length === 0) {
+      this.makingByStore.delete(storeId)
+      return
+    }
+    this.makingByStore.set(storeId, next)
   }
 
   private dispatch(storeId: number, event: StoreEvent): void {

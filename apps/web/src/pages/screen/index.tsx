@@ -12,12 +12,14 @@ interface ScreenSlot {
 interface ScreenQueue {
   ready: ScreenSlot[]
   recent: string[]
+  making: string[]
 }
 
 const READY_CAPACITY = 12
 const RECENT_CAPACITY = 8
+const MAKING_CAPACITY = 12
 
-const EMPTY_QUEUE: ScreenQueue = { ready: [], recent: [] }
+const EMPTY_QUEUE: ScreenQueue = { ready: [], recent: [], making: [] }
 
 function moveToRecent(recent: string[], numbers: string[]): string[] {
   return [...recent, ...numbers].slice(-RECENT_CAPACITY)
@@ -28,19 +30,34 @@ function queueReducer(state: ScreenQueue, event: StoreEvent): ScreenQueue {
     return {
       ready: event.ready.map((number) => ({ number, calledAt: Date.now() })),
       recent: [],
+      making: event.making.slice(-MAKING_CAPACITY),
     }
   }
 
-  if (event.tag !== orderMakingEventTags.PREPARING_TO_READY) return state
-
-  const { pickupCode } = event
-  if (!pickupCode || state.ready.some((slot) => slot.number === pickupCode)) return state
-  const ready = [...state.ready, { number: pickupCode, calledAt: Date.now() }]
-  const overflow = ready.length > READY_CAPACITY ? ready.slice(0, ready.length - READY_CAPACITY) : []
-  return {
-    ready: ready.slice(-READY_CAPACITY),
-    recent: moveToRecent(state.recent, overflow.map((slot) => slot.number)),
+  if (event.tag === orderMakingEventTags.PENDING_TO_PREPARING) {
+    const { pickupCode } = event
+    if (!pickupCode || state.making.includes(pickupCode)) return state
+    return { ...state, making: [...state.making, pickupCode].slice(-MAKING_CAPACITY) }
   }
+
+  if (event.tag === orderMakingEventTags.PREPARING_TO_READY) {
+    const { pickupCode } = event
+    const making = pickupCode
+      ? state.making.filter((code) => code !== pickupCode)
+      : state.making
+    if (!pickupCode || state.ready.some((slot) => slot.number === pickupCode)) {
+      return { ...state, making }
+    }
+    const ready = [...state.ready, { number: pickupCode, calledAt: Date.now() }]
+    const overflow = ready.length > READY_CAPACITY ? ready.slice(0, ready.length - READY_CAPACITY) : []
+    return {
+      ready: ready.slice(-READY_CAPACITY),
+      recent: moveToRecent(state.recent, overflow.map((slot) => slot.number)),
+      making,
+    }
+  }
+
+  return state
 }
 
 function pad(n: number) {
@@ -134,11 +151,30 @@ export default function ScreenPage() {
         </section>
       </main>
 
-      {/* 底栏：制作中标题（队列数据后续接入）+ 时间 */}
+      {/* 底栏：制作中队列 + 时间 */}
       <footer className="flex shrink-0 items-center gap-[1.5vw] px-[2vw] py-[1.4vh]">
         <SectionTitle>制作中</SectionTitle>
 
-        <div className="flex-1" />
+        <div className="flex min-w-0 flex-1 items-center gap-[1.2vw] overflow-hidden">
+          {queue.making.length === 0 ? (
+            <span
+              className="text-neutral-500"
+              style={{ fontSize: "clamp(13px, 1.2vw, 22px)" }}
+            >
+              {connection === "live" ? "暂无制作中订单" : "正在连接服务"}
+            </span>
+          ) : (
+            queue.making.map((number) => (
+              <span
+                key={number}
+                className="font-medium tabular-nums text-black"
+                style={{ fontSize: "clamp(20px, 2.2vw, 42px)" }}
+              >
+                {number}
+              </span>
+            ))
+          )}
+        </div>
 
         <div className="flex shrink-0 items-baseline gap-[0.9vw]">
           {connection !== "live" && (

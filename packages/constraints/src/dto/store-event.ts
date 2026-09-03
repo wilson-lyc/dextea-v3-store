@@ -20,6 +20,7 @@ export const orderStatusEventSchema = z.object({
   orderId: z.number().int(),
   orderNo: z.string(),
   storeId: z.number().int(),
+  diningMethod: z.number().int(),
   fromStatus: z.number().int(),
   toStatus: z.number().int(),
   makingStatus: z.number().int(),
@@ -35,6 +36,7 @@ export type OrderStatusEvent = z.infer<typeof orderStatusEventSchema>
 export const storeSnapshotEventSchema = z.object({
   type: z.literal(storeEventTypes.SNAPSHOT),
   ready: z.array(z.string()),
+  making: z.array(z.string()),
 })
 
 export type StoreSnapshotEvent = z.infer<typeof storeSnapshotEventSchema>

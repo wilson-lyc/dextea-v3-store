@@ -204,12 +204,14 @@ export function mapOrderDetail(detail: OrderDetailData): Order {
 }
 
 export function mapOrderStatusEvent(event: OrderStatusEvent): Order {
+  const type = mapDiningMethod(event.diningMethod)
+
   return {
     id: String(event.orderId),
     orderNo: event.orderNo,
     code: event.pickupCode,
-    customer: "门店订单",
-    type: "门店",
+    customer: type === "外卖" ? "外卖订单" : "门店订单",
+    type,
     paymentStatus: event.paymentStatus,
     makingStatus: event.makingStatus,
     items: [
