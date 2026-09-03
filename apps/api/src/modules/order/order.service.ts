@@ -1,4 +1,8 @@
-import type { OrderDetailData, OrderWindowData } from '@dextea/constraints'
+import type {
+  OrderDetailData,
+  OrderMakingBoardData,
+  OrderWindowData,
+} from '@dextea/constraints'
 import { BizError, type BizErrorDefinition } from '@/shared/errors.js'
 import { getLogger } from '@/shared/logger.js'
 import { UpstreamServiceError } from '@/infrastructure/external/order-service.client.js'
@@ -39,6 +43,12 @@ export class OrderService {
 
   public async getOrderWindow(request: OrderGatewayRequest): Promise<OrderWindowData> {
     return this.forward(() => this.orderGateway.getOrderWindow(request))
+  }
+
+  public async getMakingBoard(
+    request: OrderGatewayRequest
+  ): Promise<OrderMakingBoardData> {
+    return this.forward(() => this.orderGateway.getMakingBoard(request))
   }
 
   public async getOrderDetail(

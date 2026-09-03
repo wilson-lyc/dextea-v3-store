@@ -25,6 +25,21 @@ export const orderWindowDataSchema = z.object({
 
 export type OrderWindowData = z.infer<typeof orderWindowDataSchema>
 
+export const orderMakingBoardDataSchema = z.object({
+  preparingPickupCodes: z.array(z.string()),
+  readyPickupCodes: z.array(z.string()),
+  preparingOrderCount: z.number().int(),
+  preparingProductQuantity: z.number().int(),
+})
+
+export type OrderMakingBoardData = z.infer<typeof orderMakingBoardDataSchema>
+
+export const orderMakingBoardResponseSchema = upstreamEnvelopeSchema(
+  orderMakingBoardDataSchema,
+)
+
+export type OrderMakingBoardResponse = z.infer<typeof orderMakingBoardResponseSchema>
+
 export const orderDetailItemSchema = z.object({
   id: z.number().int().nullable(),
   productId: z.number().int(),

@@ -1,9 +1,11 @@
 import type { z } from 'zod'
 import {
   orderDetailResponseSchema,
+  orderMakingBoardResponseSchema,
   orderReadyUpstreamResponseSchema,
   orderWindowResponseSchema,
   type OrderDetailData,
+  type OrderMakingBoardData,
   type OrderWindowData,
 } from '@dextea/constraints'
 import { getLogger } from '@/shared/logger.js'
@@ -76,6 +78,21 @@ export class HttpOrderGateway implements OrderGateway {
       orderWindowResponseSchema,
       payload,
       'GET /orders/window'
+    )
+  }
+
+  public async getMakingBoard(
+    request: OrderGatewayRequest
+  ): Promise<OrderMakingBoardData> {
+    const payload = await this.request(
+      request,
+      '/api/v1/store/orders/making-board',
+      'GET'
+    )
+    return this.parseUpstream<OrderMakingBoardData>(
+      orderMakingBoardResponseSchema,
+      payload,
+      'GET /orders/making-board'
     )
   }
 

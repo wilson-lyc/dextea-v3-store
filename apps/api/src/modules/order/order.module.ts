@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   apiEnvelopeSchema,
   orderDetailDataSchema,
+  orderMakingBoardDataSchema,
   orderWindowDataSchema,
 } from '@dextea/constraints'
 import type { FastifyRequest } from 'fastify'
@@ -16,6 +17,7 @@ const orderIdParamsSchema = z.object({
 })
 
 const windowResponseSchema = apiEnvelopeSchema(orderWindowDataSchema)
+const makingBoardResponseSchema = apiEnvelopeSchema(orderMakingBoardDataSchema)
 const detailResponseSchema = apiEnvelopeSchema(orderDetailDataSchema)
 const readyResponseSchema = apiEnvelopeSchema(z.null())
 
@@ -32,6 +34,15 @@ export function createOrderRoutes(options: OrderModuleOptions): FastifyPluginAsy
       { schema: { response: { 200: windowResponseSchema } } },
       async (request, reply) => {
         const result = await orderService.getOrderWindow(buildGatewayRequest(request))
+        return reply.send(success(result))
+      }
+    )
+
+    app.get(
+      '/orders/making-board',
+      { schema: { response: { 200: makingBoardResponseSchema } } },
+      async (request, reply) => {
+        const result = await orderService.getMakingBoard(buildGatewayRequest(request))
         return reply.send(success(result))
       }
     )

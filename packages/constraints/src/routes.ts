@@ -21,6 +21,7 @@ export const apiRoutes = {
   },
   order: {
     window: () => '/api/v1/store/orders/window',
+    makingBoard: () => '/api/v1/store/orders/making-board',
     detail: (orderId: number) => `/api/v1/store/orders/${orderId}`,
     ready: (orderId: number) => `/api/v1/store/orders/${orderId}/ready`,
     collect: (orderId: number) => `/api/v1/store/orders/${orderId}/collect`,

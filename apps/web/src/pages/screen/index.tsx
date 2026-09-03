@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useReducer, useState } from "react"
 
-import { orderMakingEventTags, storeEventTypes, type StoreEvent } from "@dextea/constraints"
+import {
+  orderMakingEventTags,
+  storeEventTypes,
+  type OrderMakingBoardData,
+  type StoreEvent,
+} from "@dextea/constraints"
 
+import { fetchMakingBoard } from "@/features/order/api"
 import { useStoreEvents } from "@/features/store-event/hooks/use-store-events"
+import { logger } from "@/shared/lib/logger"
 
 interface ScreenSlot {
   number: string
@@ -13,35 +20,77 @@ interface ScreenQueue {
   ready: ScreenSlot[]
   recent: string[]
   making: string[]
+  preparingOrderCount: number
+  preparingProductQuantity: number
+  boardSynced: boolean
 }
+
+// 看板为权威全量，SSE 事件只做秒级增量；轮询用于对账，修正丢事件 / 重启导致的漂移
+type ScreenAction = StoreEvent | { type: "board"; board: OrderMakingBoardData }
 
 const READY_CAPACITY = 12
 const RECENT_CAPACITY = 8
 const MAKING_CAPACITY = 12
+const BOARD_POLL_INTERVAL_MS = 30_000
 
-const EMPTY_QUEUE: ScreenQueue = { ready: [], recent: [], making: [] }
+const EMPTY_QUEUE: ScreenQueue = {
+  ready: [],
+  recent: [],
+  making: [],
+  preparingOrderCount: 0,
+  preparingProductQuantity: 0,
+  boardSynced: false,
+}
 
 function moveToRecent(recent: string[], numbers: string[]): string[] {
   return [...recent, ...numbers].slice(-RECENT_CAPACITY)
 }
 
-function queueReducer(state: ScreenQueue, event: StoreEvent): ScreenQueue {
-  if (event.type === storeEventTypes.SNAPSHOT) {
+// 用权威取餐码列表重建队列，已在屏上的保留原叫号时间，避免叫号动画被无意义重置
+function syncSlots(previous: ScreenSlot[], numbers: string[]): ScreenSlot[] {
+  const calledAtByNumber = new Map(previous.map((slot) => [slot.number, slot.calledAt]))
+  return numbers.map((number) => ({
+    number,
+    calledAt: calledAtByNumber.get(number) ?? Date.now(),
+  }))
+}
+
+function queueReducer(state: ScreenQueue, action: ScreenAction): ScreenQueue {
+  if (action.type === "board") {
+    const {
+      preparingPickupCodes,
+      readyPickupCodes,
+      preparingOrderCount,
+      preparingProductQuantity,
+    } = action.board
+
     return {
-      ready: event.ready.map((number) => ({ number, calledAt: Date.now() })),
-      recent: [],
-      making: event.making.slice(-MAKING_CAPACITY),
+      ready: syncSlots(state.ready, readyPickupCodes).slice(-READY_CAPACITY),
+      recent: state.recent,
+      making: preparingPickupCodes.slice(-MAKING_CAPACITY),
+      preparingOrderCount,
+      preparingProductQuantity,
+      boardSynced: true,
     }
   }
 
-  if (event.tag === orderMakingEventTags.PENDING_TO_PREPARING) {
-    const { pickupCode } = event
+  if (action.type === storeEventTypes.SNAPSHOT) {
+    return {
+      ...state,
+      ready: syncSlots(state.ready, action.ready).slice(-READY_CAPACITY),
+      recent: [],
+      making: action.making.slice(-MAKING_CAPACITY),
+    }
+  }
+
+  if (action.tag === orderMakingEventTags.PENDING_TO_PREPARING) {
+    const { pickupCode } = action
     if (!pickupCode || state.making.includes(pickupCode)) return state
     return { ...state, making: [...state.making, pickupCode].slice(-MAKING_CAPACITY) }
   }
 
-  if (event.tag === orderMakingEventTags.PREPARING_TO_READY) {
-    const { pickupCode } = event
+  if (action.tag === orderMakingEventTags.PREPARING_TO_READY) {
+    const { pickupCode } = action
     const making = pickupCode
       ? state.making.filter((code) => code !== pickupCode)
       : state.making
@@ -51,6 +100,7 @@ function queueReducer(state: ScreenQueue, event: StoreEvent): ScreenQueue {
     const ready = [...state.ready, { number: pickupCode, calledAt: Date.now() }]
     const overflow = ready.length > READY_CAPACITY ? ready.slice(0, ready.length - READY_CAPACITY) : []
     return {
+      ...state,
       ready: ready.slice(-READY_CAPACITY),
       recent: moveToRecent(state.recent, overflow.map((slot) => slot.number)),
       making,
@@ -77,6 +127,28 @@ export default function ScreenPage() {
   const now = useNow()
   const [queue, dispatch] = useReducer(queueReducer, EMPTY_QUEUE)
   const connection = useStoreEvents(dispatch)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const board = await fetchMakingBoard()
+        if (cancelled) return
+        dispatch({ type: "board", board })
+      } catch (error) {
+        logger.error("[大屏] 制作看板拉取失败", error)
+      }
+    }
+
+    void load()
+    const timer = window.setInterval(load, BOARD_POLL_INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
 
   const latest = queue.ready.at(-1) ?? null
   const waiting = useMemo(() => queue.ready.slice(0, -1).reverse(), [queue.ready])
@@ -154,6 +226,15 @@ export default function ScreenPage() {
       {/* 底栏：制作中队列 + 时间 */}
       <footer className="flex shrink-0 items-center gap-[1.5vw] px-[2vw] py-[1.4vh]">
         <SectionTitle>制作中</SectionTitle>
+
+        {queue.boardSynced && (
+          <span
+            className="shrink-0 tabular-nums text-[oklch(0.45 0 0)]"
+            style={{ fontSize: "clamp(13px, 1.2vw, 22px)" }}
+          >
+            共 {queue.preparingOrderCount} 单 / {queue.preparingProductQuantity} 件
+          </span>
+        )}
 
         <div className="flex min-w-0 flex-1 items-center gap-[1.2vw] overflow-hidden">
           {queue.making.length === 0 ? (
