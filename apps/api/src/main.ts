@@ -17,7 +17,7 @@ async function startNacosDiscovery(): Promise<void> {
   const logger = getLogger()
 
   if (!isNacosDiscoveryEnabled()) {
-    logger.info('[nacos] 服务发现未启用，订单微服务地址取自 ORDER_SERVICE_BASE_URL')
+    logger.info('[nacos] 服务发现未启用，订单 RPC 地址取自 ORDER_SERVICE_RPC_ADDR')
     return
   }
 

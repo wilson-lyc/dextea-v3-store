@@ -10,6 +10,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@grpc/grpc-js':
+        specifier: ^1.14.4
+        version: 1.14.4
+      '@grpc/proto-loader':
+        specifier: ^0.8.1
+        version: 0.8.1
       '@dextea/constraints':
         specifier: workspace:*
         version: link:../../packages/constraints

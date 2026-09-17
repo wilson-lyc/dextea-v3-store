@@ -26,7 +26,6 @@ export interface CustomizationRepository {
     storeId: number,
     optionIds: readonly number[]
   ): Promise<Map<number, CustomizationOptionStoreStatusCode>>
-  findOptionById(optionId: number): Promise<CustomizationOption | null>
   upsertOptionStoreStatus(
     optionId: number,
     storeId: number,

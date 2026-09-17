@@ -2,9 +2,7 @@ import {
   customizationOptionStoreStatusCode,
   type CustomizationOptionStoreStatusCode,
 } from '@dextea/constraints'
-import { BizError } from '@/shared/errors.js'
 import { getLogger } from '@/shared/logger.js'
-import { customizationErrors } from './customization.error.js'
 import type { CustomizationItem, CustomizationOption } from './customization.model.js'
 import type { CustomizationRepository } from './customization.repository.js'
 
@@ -71,12 +69,6 @@ export class CustomizationService {
     storeId: number,
     status: CustomizationOptionStoreStatusCode
   ): Promise<CustomizationOptionStoreStatusCode> {
-    const option = await this.customizationRepository.findOptionById(optionId)
-
-    if (!option) {
-      throw new BizError(customizationErrors.OPTION_NOT_FOUND)
-    }
-
     await this.customizationRepository.upsertOptionStoreStatus(optionId, storeId, status)
 
     this.logger.info(

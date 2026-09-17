@@ -57,9 +57,16 @@ export const envSchema = z
     JWT_SECRET: z.string().min(1),
     JWT_EXPIRES_IN: z.string().min(1).default('7d'),
 
+    STORE_SERVICE_NAME: z.string().min(1).default('dextea-store-service'),
+    STORE_SERVICE_SCHEME: z.enum(['http', 'https']).default('http'),
+    STORE_SERVICE_ADDR: z.string().min(1).default('127.0.0.1:9092'),
+    PRODUCT_SERVICE_ADDR: z.string().min(1).default('127.0.0.1:9090'),
+
     ORDER_SERVICE_NAME: z.string().min(1).default('order-service'),
+    ORDER_SERVICE_PROTOCOL: z.enum(['rpc', 'http']).default('rpc'),
     ORDER_SERVICE_SCHEME: z.enum(['http', 'https']).default('http'),
     ORDER_SERVICE_BASE_URL: optionalUrl(),
+    ORDER_SERVICE_RPC_ADDR: z.string().min(1).default('127.0.0.1:9091'),
 
     ...nacosEnvSchema.shape,
     ...mqEnvSchema.shape,
@@ -81,13 +88,6 @@ export const envSchema = z
       })
     }
 
-    if (!env.NACOS_ENABLED && !env.ORDER_SERVICE_BASE_URL) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['ORDER_SERVICE_BASE_URL'],
-        message: '未启用 Nacos 服务发现时必须配置 ORDER_SERVICE_BASE_URL',
-      })
-    }
   })
 
 export type Env = z.infer<typeof envSchema>

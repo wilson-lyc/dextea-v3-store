@@ -8,30 +8,27 @@ import { getConfig } from '@/config/index.js'
 import { buildLoggerOptions } from '@/shared/logger.js'
 import { getDatabase } from '@/infrastructure/database/pool.js'
 import { HttpOrderGateway } from '@/infrastructure/external/order-service.client.js'
+import { GrpcOrderGateway } from '@/infrastructure/external/order-service-rpc.client.js'
 import { registerPlugins } from '@/interfaces/http/plugins.js'
 import { registerErrorHandler } from '@/interfaces/http/error-handler.js'
 import { registerAuthGuard } from '@/interfaces/http/auth-guard.js'
 import './interfaces/http/type-augmentation.js'
 import { JwtTokenService, type TokenService } from '@/modules/auth/token.service.js'
 import { StoreCredentialsAuthService } from '@/modules/auth/auth.service.js'
-import { createAuthRoutes } from '@/modules/auth/auth.module.js'
 import {
-  DrizzleStoreRepository,
-  type StoreRepository,
-} from '@/modules/store/store.repository.js'
-import { StoreService } from '@/modules/store/store.service.js'
+  LocalStoreCredentialsService,
+  type StoreCredentialsService,
+} from '@/modules/auth/store-credentials.service.js'
+import { createAuthRoutes } from '@/modules/auth/auth.module.js'
+import type { StoreService } from '@/modules/store/store.service.js'
+import { DrizzleStoreRepository, type StoreRepository } from '@/modules/store/store.repository.js'
+import { GrpcStoreServiceClient } from '@/infrastructure/store/store-service.client.js'
 import { toStoreView } from '@/modules/store/store.presenter.js'
 import { createStoreRoutes } from '@/modules/store/store.module.js'
-import {
-  DrizzleProductRepository,
-  type ProductRepository,
-} from '@/modules/product/product.repository.js'
+import type { ProductRepository } from '@/modules/product/product.repository.js'
 import { ProductService } from '@/modules/product/product.service.js'
 import { createProductRoutes } from '@/modules/product/product.module.js'
-import {
-  DrizzleCustomizationRepository,
-  type CustomizationRepository,
-} from '@/modules/customization/customization.repository.js'
+import type { CustomizationRepository } from '@/modules/customization/customization.repository.js'
 import { CustomizationService } from '@/modules/customization/customization.service.js'
 import { createCustomizationRoutes } from '@/modules/customization/customization.module.js'
 import { OrderService } from '@/modules/order/order.service.js'
@@ -41,9 +38,12 @@ import { createStoreEventRoutes } from '@/modules/store-event/store-event.module
 import { createOrderServiceEndpointResolver } from '@/infrastructure/external/order-endpoint.resolver.js'
 import type { OrderGateway } from '@/modules/order/order.gateway.js'
 import type { OrderServiceEndpointResolver } from '@/modules/order/order.endpoint-resolver.js'
+import { createProductRpcRepositories } from '@/infrastructure/product/product-service.client.js'
 
 export interface AppDependencies {
+  storeService?: StoreService
   storeRepository?: StoreRepository
+  credentialsService?: StoreCredentialsService
   productRepository?: ProductRepository
   customizationRepository?: CustomizationRepository
   orderGateway?: OrderGateway
@@ -85,21 +85,28 @@ export async function buildApp(
 
   app.get('/health', async () => ({ status: 'ok' }))
 
+  const storeService = dependencies.storeService ?? new GrpcStoreServiceClient()
   const storeRepository =
     dependencies.storeRepository ?? new DrizzleStoreRepository(getDatabase())
-  const productRepository =
-    dependencies.productRepository ?? new DrizzleProductRepository(getDatabase())
+  const credentialsService =
+    dependencies.credentialsService ?? new LocalStoreCredentialsService(storeRepository)
+  const productRpc =
+    !dependencies.productRepository || !dependencies.customizationRepository
+      ? createProductRpcRepositories()
+      : undefined
+  const productRepository = dependencies.productRepository ?? productRpc!.product
   const customizationRepository =
-    dependencies.customizationRepository ??
-    new DrizzleCustomizationRepository(getDatabase())
+    dependencies.customizationRepository ?? productRpc!.customization
   const orderEndpointResolver =
     dependencies.orderEndpointResolver ?? createOrderServiceEndpointResolver()
-  const orderGateway =
-    dependencies.orderGateway ?? new HttpOrderGateway(orderEndpointResolver)
+  const orderGateway = dependencies.orderGateway ?? (
+    config.orderService.protocol === 'http'
+      ? new HttpOrderGateway(orderEndpointResolver)
+      : new GrpcOrderGateway()
+  )
 
   const tokenService = dependencies.tokenService ?? new JwtTokenService()
-  const authService = new StoreCredentialsAuthService(storeRepository, tokenService)
-  const storeService = new StoreService(storeRepository)
+  const authService = new StoreCredentialsAuthService(credentialsService, tokenService)
   const productService = new ProductService(productRepository)
   const customizationService = new CustomizationService(customizationRepository)
   const orderService = new OrderService(orderGateway)
@@ -109,7 +116,10 @@ export async function buildApp(
 
   const modules: RegisteredModule[] = [
     { prefix: '/api/v1/auth', plugin: createAuthRoutes({ authService, toStoreView }) },
-    { prefix: '/api/v1/store', plugin: createStoreRoutes({ storeService }) },
+    {
+      prefix: '/api/v1/store',
+      plugin: createStoreRoutes({ storeService, credentialsService }),
+    },
     { prefix: '/api/v1/products', plugin: createProductRoutes({ productService }) },
     {
       prefix: '/api/v1/products',
@@ -122,6 +132,9 @@ export async function buildApp(
   await registerApiModules(app, modules)
 
   app.addHook('onClose', async () => {
+    if (storeService instanceof GrpcStoreServiceClient) storeService.close()
+    if (orderGateway instanceof GrpcOrderGateway) orderGateway.close()
+    productRpc?.close()
     app.log.info('[app] Fastify 应用已关闭')
   })
 

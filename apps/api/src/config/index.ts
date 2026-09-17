@@ -20,9 +20,17 @@ export interface NacosConfig {
 }
 
 export interface OrderServiceConfig {
+  protocol: 'rpc' | 'http'
   serviceName: string
   scheme: 'http' | 'https'
   baseUrl: string | undefined
+  rpcAddress: string
+}
+
+export interface StoreServiceConfig {
+  serviceName: string
+  scheme: 'http' | 'https'
+  address: string
 }
 
 export interface MqConfig {
@@ -60,6 +68,8 @@ export interface AppConfig {
     expiresIn: string
   }
   orderService: OrderServiceConfig
+  storeService: StoreServiceConfig
+  productService: { address: string }
   nacos: NacosConfig
   mq: {
     orderMaking: MqConfig
@@ -119,10 +129,18 @@ function buildConfig(env: Env): AppConfig {
       expiresIn: env.JWT_EXPIRES_IN,
     },
     orderService: {
+      protocol: env.ORDER_SERVICE_PROTOCOL,
       serviceName: env.ORDER_SERVICE_NAME.trim(),
       scheme: env.ORDER_SERVICE_SCHEME,
       baseUrl: env.ORDER_SERVICE_BASE_URL?.replace(/\/+$/, ''),
+      rpcAddress: env.ORDER_SERVICE_RPC_ADDR.trim(),
     },
+    storeService: {
+      serviceName: env.STORE_SERVICE_NAME.trim(),
+      scheme: env.STORE_SERVICE_SCHEME,
+      address: env.STORE_SERVICE_ADDR.trim(),
+    },
+    productService: { address: env.PRODUCT_SERVICE_ADDR.trim() },
     nacos: {
       enabled: env.NACOS_ENABLED,
       serverList: splitServerList(env.NACOS_SERVER_ADDR),
