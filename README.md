@@ -130,8 +130,8 @@ cp apps/api/.env.example apps/api/.env
 
 订单微服务不做 IP 硬编码，地址按以下优先级确定：
 
-1. `NACOS_ENABLED=true`：启动时连接 Nacos 并订阅订单服务，每次调用前从本地缓存的实例表中按**权重随机**挑一个健康实例，拼出请求地址；实例上下线由 Nacos 推送 + 定时拉取自动生效，无需重启。
-2. `NACOS_ENABLED=false`：回落到 `ORDER_SERVICE_BASE_URL`（本地开发或无注册中心时的兜底）。
+1. `NACOS_ENABLED=true`：启动时连接 Nacos，并在调用订单、商品、门店服务前按**权重随机**挑一个健康实例；实例上下线由 Nacos 推送 + 定时拉取自动生效，无需重启。
+2. `NACOS_ENABLED=false`，或 Nacos 查询失败/没有健康实例：分别回落到 `ORDER_SERVICE_BASE_URL`、`PRODUCT_SERVICE_ADDR`、`STORE_SERVICE_ADDR`（本地开发或无注册中心时的兜底）。
 
 拼装规则：`{scheme}://{ip}:{port}`。`scheme` 取自实例元数据的 `scheme`（仅识别 `http` / `https`，缺省用 `ORDER_SERVICE_SCHEME`）。不健康、未启用、权重为 0 的实例由 SDK 的 `selectInstances(healthy=true)` 过滤，本服务不再重复判断。
 

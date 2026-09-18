@@ -21,6 +21,8 @@ import { Product } from '@/modules/product/product.model.js'
 import { CustomizationItem, CustomizationOption } from '@/modules/customization/customization.model.js'
 import type { ProductRepository } from '@/modules/product/product.repository.js'
 import type { CustomizationRepository } from '@/modules/customization/customization.repository.js'
+import { getNacosNamingClient, isNacosDiscoveryEnabled } from '@/infrastructure/nacos/naming-client.js'
+import { NacosServiceDiscovery } from '@/infrastructure/nacos/service-discovery.js'
 
 type Callback<T> = (error: Error | null, response: T) => void
 type RpcProduct = { id: number | string; name: string; brief?: string; description: string; status: number; price: number; createdAt: string; updatedAt: string }
@@ -47,15 +49,23 @@ function protoPath(): string {
     path.resolve(process.cwd(), '../../../dextea-proto/proto/product/v1/product.proto')
 }
 
-function createClient(): ProductRpcClient {
+function createClient(address: string): ProductRpcClient {
   const definition = protoLoader.loadSync(protoPath(), { keepCase: false, longs: String, defaults: true, oneofs: true })
   const packages = loadPackageDefinition(definition) as unknown as {
     dextea: { product: { v1: { ProductService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => ProductRpcClient } } }
   }
-  return new packages.dextea.product.v1.ProductService(
-    getConfig().productService.address,
-    credentials.createInsecure()
-  )
+  return new packages.dextea.product.v1.ProductService(address, credentials.createInsecure())
+}
+
+async function resolveAddress(): Promise<string> {
+  const config = getConfig()
+  if (isNacosDiscoveryEnabled()) {
+    try {
+      const address = await new NacosServiceDiscovery(await getNacosNamingClient(), { group: config.nacos.group, clusters: config.nacos.clusters, defaultScheme: 'http' }).selectOneHealthyAddress(config.productService.serviceName)
+      if (address) return address
+    } catch { /* 静态地址兜底 */ }
+  }
+  return config.productService.address
 }
 
 function mapError(error: unknown, domain: 'product' | 'customization'): Error {
@@ -84,11 +94,12 @@ function optionModel(row: RpcOption): CustomizationOption {
 }
 
 export class GrpcProductRepository implements ProductRepository {
-  public constructor(private readonly client: ProductRpcClient) {}
+  public constructor(private readonly clientFactory: () => Promise<ProductRpcClient>) {}
+  private async call<T>(fn: (client: ProductRpcClient) => Promise<T>): Promise<T> { const client = await this.clientFactory(); try { return await fn(client) } finally { client.close() } }
 
   public async findGloballyActive(): Promise<Product[]> {
     try {
-      const response = await rpc((cb) => this.client.listProducts({ page: 1, pageSize: 100, status: ProductGlobalStatus.keyMap.ACTIVE, name: '' }, cb))
+      const response = await this.call<{ products: RpcProduct[]; total: number | string }>((client) => rpc((cb) => client.listProducts({ page: 1, pageSize: 100, status: ProductGlobalStatus.keyMap.ACTIVE, name: '' }, cb)))
       return response.products.map(productModel)
     } catch (error) { throw mapError(error, 'product') }
   }
@@ -97,7 +108,7 @@ export class GrpcProductRepository implements ProductRepository {
     const result = new Map<number, ProductStoreStatusCode>(productIds.map((id) => [id, ProductStoreStatus.keyMap.DISABLED]))
     if (productIds.length === 0) return result
     try {
-      const response = await rpc((cb) => this.client.getProductStoreStatuses({ storeId, productIds }, cb))
+      const response = await this.call<{ products: StatusView[] }>((client) => rpc((cb) => client.getProductStoreStatuses({ storeId, productIds }, cb)))
       for (const row of response.products) result.set(Number(row.productId), ProductStoreStatus.schema().parse(row.storeStatus) as ProductStoreStatusCode)
       return result
     } catch (error) { throw mapError(error, 'product') }
@@ -109,24 +120,25 @@ export class GrpcProductRepository implements ProductRepository {
 
   public async batchSetStoreStatus(storeId: number, productIds: readonly number[], status: ProductStoreStatusCode): Promise<void> {
     if (productIds.length === 0) return
-    try { await rpc((cb) => this.client.batchSetProductStoreStatus({ storeId, productIds, status }, cb)) }
+    try { await this.call((client) => rpc((cb) => client.batchSetProductStoreStatus({ storeId, productIds, status }, cb))) }
     catch (error) { throw mapError(error, 'product') }
   }
 }
 
 export class GrpcCustomizationRepository implements CustomizationRepository {
-  public constructor(private readonly client: ProductRpcClient) {}
+  public constructor(private readonly clientFactory: () => Promise<ProductRpcClient>) {}
+  private async call<T>(fn: (client: ProductRpcClient) => Promise<T>): Promise<T> { const client = await this.clientFactory(); try { return await fn(client) } finally { client.close() } }
 
   public async findActiveItemsByProductId(productId: number): Promise<CustomizationItem[]> {
     try {
-      const response = await rpc((cb) => this.client.listCustomizationItems({ productId, page: 1, pageSize: 100, status: CustomizationItemStatus.keyMap.ACTIVE, name: '' }, cb))
+      const response = await this.call<{ items: RpcItem[]; total: number | string }>((client) => rpc((cb) => client.listCustomizationItems({ productId, page: 1, pageSize: 100, status: CustomizationItemStatus.keyMap.ACTIVE, name: '' }, cb)))
       return response.items.map(itemModel)
     } catch (error) { throw mapError(error, 'customization') }
   }
 
   public async findActiveOptionsByItemIds(itemIds: readonly number[]): Promise<CustomizationOption[]> {
     try {
-      const lists = await Promise.all(itemIds.map((itemId) => rpc((cb) => this.client.listCustomizationOptions({ itemId, page: 1, pageSize: 100, status: CustomizationOptionGlobalStatus.keyMap.ACTIVE, name: '' }, cb))))
+      const lists = await Promise.all(itemIds.map((itemId) => this.call<{ options: RpcOption[]; total: number | string }>((client) => rpc((cb) => client.listCustomizationOptions({ itemId, page: 1, pageSize: 100, status: CustomizationOptionGlobalStatus.keyMap.ACTIVE, name: '' }, cb)))))
       return lists.flatMap((response) => response.options.map(optionModel))
     } catch (error) { throw mapError(error, 'customization') }
   }
@@ -135,23 +147,23 @@ export class GrpcCustomizationRepository implements CustomizationRepository {
     const result = new Map<number, CustomizationOptionStoreStatusCode>(optionIds.map((id) => [id, CustomizationOptionStoreStatus.keyMap.DISABLED]))
     if (optionIds.length === 0) return result
     try {
-      const response = await rpc((cb) => this.client.getCustomizationOptionStoreStatuses({ storeId, optionIds }, cb))
+      const response = await this.call<{ options: StatusView[] }>((client) => rpc((cb) => client.getCustomizationOptionStoreStatuses({ storeId, optionIds }, cb)))
       for (const row of response.options) result.set(Number(row.optionId), CustomizationOptionStoreStatus.schema().parse(row.storeStatus) as CustomizationOptionStoreStatusCode)
       return result
     } catch (error) { throw mapError(error, 'customization') }
   }
 
   public async upsertOptionStoreStatus(optionId: number, storeId: number, status: CustomizationOptionStoreStatusCode): Promise<void> {
-    try { await rpc((cb) => this.client.batchSetCustomizationOptionStoreStatus({ storeId, optionIds: [optionId], status }, cb)) }
+      try { await this.call((client) => rpc((cb) => client.batchSetCustomizationOptionStoreStatus({ storeId, optionIds: [optionId], status }, cb))) }
     catch (error) { throw mapError(error, 'customization') }
   }
 }
 
 export function createProductRpcRepositories(): { product: GrpcProductRepository; customization: GrpcCustomizationRepository; close: () => void } {
-  const client = createClient()
+  const factory = async () => createClient(await resolveAddress())
   return {
-    product: new GrpcProductRepository(client),
-    customization: new GrpcCustomizationRepository(client),
-    close: () => client.close(),
+    product: new GrpcProductRepository(factory),
+    customization: new GrpcCustomizationRepository(factory),
+    close: () => undefined,
   }
 }

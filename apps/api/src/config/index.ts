@@ -69,7 +69,7 @@ export interface AppConfig {
   }
   orderService: OrderServiceConfig
   storeService: StoreServiceConfig
-  productService: { address: string }
+  productService: { serviceName: string; address: string }
   nacos: NacosConfig
   mq: {
     orderMaking: MqConfig
@@ -140,7 +140,7 @@ function buildConfig(env: Env): AppConfig {
       scheme: env.STORE_SERVICE_SCHEME,
       address: env.STORE_SERVICE_ADDR.trim(),
     },
-    productService: { address: env.PRODUCT_SERVICE_ADDR.trim() },
+    productService: { serviceName: env.PRODUCT_SERVICE_NAME.trim(), address: env.PRODUCT_SERVICE_ADDR.trim() },
     nacos: {
       enabled: env.NACOS_ENABLED,
       serverList: splitServerList(env.NACOS_SERVER_ADDR),

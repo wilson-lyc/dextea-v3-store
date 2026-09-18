@@ -61,8 +61,9 @@ export const envSchema = z
     STORE_SERVICE_SCHEME: z.enum(['http', 'https']).default('http'),
     STORE_SERVICE_ADDR: z.string().min(1).default('127.0.0.1:9092'),
     PRODUCT_SERVICE_ADDR: z.string().min(1).default('127.0.0.1:9090'),
+    PRODUCT_SERVICE_NAME: z.string().min(1).default('dextea-product'),
 
-    ORDER_SERVICE_NAME: z.string().min(1).default('order-service'),
+    ORDER_SERVICE_NAME: z.string().min(1).default('dextea-trade'),
     ORDER_SERVICE_PROTOCOL: z.enum(['rpc', 'http']).default('rpc'),
     ORDER_SERVICE_SCHEME: z.enum(['http', 'https']).default('http'),
     ORDER_SERVICE_BASE_URL: optionalUrl(),

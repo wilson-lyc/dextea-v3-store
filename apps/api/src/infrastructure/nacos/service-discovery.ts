@@ -11,6 +11,7 @@ export interface ServiceDiscoveryOptions {
 
 export interface ServiceDiscovery {
   selectOneHealthyBaseUrl(serviceName: string): Promise<string | null>
+  selectOneHealthyAddress(serviceName: string): Promise<string | null>
 }
 
 export class NacosServiceDiscovery implements ServiceDiscovery {
@@ -43,6 +44,19 @@ export class NacosServiceDiscovery implements ServiceDiscovery {
     const selected = pickByWeight(hosts)
 
     return selected ? toBaseUrl(selected, this.options.defaultScheme) : null
+  }
+
+  public async selectOneHealthyAddress(serviceName: string): Promise<string | null> {
+    let hosts: Host[]
+    try {
+      hosts = await withTimeout(
+        this.client.selectInstances(serviceName, this.options.group, this.options.clusters, true, true),
+        this.options.queryTimeout ?? 3_000
+      )
+    } catch (error) {
+      throw new NacosDiscoveryError(`从 Nacos 查询服务 ${serviceName} 的实例列表失败`, { cause: error })
+    }
+    return toAddress(pickByWeight(hosts))
   }
 }
 
@@ -97,4 +111,8 @@ function toBaseUrl(host: Host, fallbackScheme: 'http' | 'https'): string {
       : fallbackScheme
 
   return `${normalized}://${host.ip}:${host.port}`
+}
+
+function toAddress(host: Host | undefined): string | null {
+  return host ? `${host.ip}:${host.port}` : null
 }

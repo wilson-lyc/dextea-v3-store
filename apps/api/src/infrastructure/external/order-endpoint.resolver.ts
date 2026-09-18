@@ -74,7 +74,18 @@ export class NacosOrderServiceEndpointResolver implements OrderServiceEndpointRe
 }
 
 export function createOrderServiceEndpointResolver(): OrderServiceEndpointResolver {
-  return getConfig().nacos.enabled
-    ? new NacosOrderServiceEndpointResolver()
-    : new StaticOrderServiceEndpointResolver()
+  return new FallbackOrderServiceEndpointResolver(
+    getConfig().nacos.enabled ? new NacosOrderServiceEndpointResolver() : undefined,
+    new StaticOrderServiceEndpointResolver()
+  )
+}
+
+class FallbackOrderServiceEndpointResolver implements OrderServiceEndpointResolver {
+  public constructor(private readonly primary: OrderServiceEndpointResolver | undefined, private readonly fallback: OrderServiceEndpointResolver) {}
+  public async resolveBaseUrl(): Promise<string> {
+    if (this.primary) {
+      try { return await this.primary.resolveBaseUrl() } catch { /* 静态地址继续兜底 */ }
+    }
+    return this.fallback.resolveBaseUrl()
+  }
 }

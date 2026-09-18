@@ -9,6 +9,8 @@ import { storeErrors } from '@/modules/store/store.error.js'
 import { Store } from '@/modules/store/store.model.js'
 import { StoreStatus, type ResetPasswordRequest, type StoreStatusCode } from '@dextea/constraints'
 import type { StoreService } from '@/modules/store/store.service.js'
+import { getNacosNamingClient, isNacosDiscoveryEnabled } from '@/infrastructure/nacos/naming-client.js'
+import { NacosServiceDiscovery } from '@/infrastructure/nacos/service-discovery.js'
 
 type RpcStore = {
   id: number | string
@@ -49,7 +51,7 @@ function protoPath(): string {
     path.resolve(process.cwd(), '../../../dextea-proto/proto/store/v1/store.proto')
 }
 
-function createClient(): StoreRpcClient {
+function createClient(address: string): StoreRpcClient {
   const packageDefinition = protoLoader.loadSync(protoPath(), {
     keepCase: false,
     longs: String,
@@ -60,8 +62,18 @@ function createClient(): StoreRpcClient {
   const packages = loadPackageDefinition(packageDefinition) as unknown as {
     dextea: { store: { v1: { StoreService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => StoreRpcClient } } }
   }
-  const { address } = getConfig().storeService
   return new packages.dextea.store.v1.StoreService(address, credentials.createInsecure())
+}
+
+async function resolveAddress(): Promise<string> {
+  const config = getConfig()
+  if (isNacosDiscoveryEnabled()) {
+    try {
+      const address = await new NacosServiceDiscovery(await getNacosNamingClient(), { group: config.nacos.group, clusters: config.nacos.clusters, defaultScheme: 'http' }).selectOneHealthyAddress(config.storeService.serviceName)
+      if (address) return address
+    } catch { /* 静态地址兜底 */ }
+  }
+  return config.storeService.address
 }
 
 function callRpc<T>(call: (callback: RpcCallback<T>) => void): Promise<T> {
@@ -97,12 +109,15 @@ function toModel(store: RpcStore): Store {
 }
 
 export class GrpcStoreServiceClient implements StoreService {
-  private readonly client = createClient()
+  private async call<T>(fn: (client: StoreRpcClient) => Promise<T>): Promise<T> {
+    const client = createClient(await resolveAddress())
+    try { return await fn(client) } finally { client.close() }
+  }
 
   public async getById(id: number): Promise<Store> {
     try {
-      const response = await callRpc((callback) => this.client.getStore({ id }, callback))
-      const store = 'store' in response ? response.store : response
+      const response = await this.call<{ store?: RpcStore } | RpcStore>((client) => callRpc((callback) => client.getStore({ id }, callback)))
+      const store = ('store' in response ? response.store : response) as RpcStore | undefined
       if (!store) throw new BizError(storeErrors.STORE_NOT_FOUND)
       return toModel(store)
     } catch (error) {
@@ -112,7 +127,7 @@ export class GrpcStoreServiceClient implements StoreService {
 
   public async getByAccount(account: string): Promise<Store> {
     try {
-      return toModel(await callRpc((callback) => this.client.getStoreByAccount({ account }, callback)))
+      return toModel(await this.call<RpcStore>((client) => callRpc((callback) => client.getStoreByAccount({ account }, callback))))
     } catch (error) {
       throw mapRpcError(error, 'store')
     }
@@ -120,7 +135,7 @@ export class GrpcStoreServiceClient implements StoreService {
 
   public async authenticate(account: string, password: string): Promise<Store> {
     try {
-      const auth = await callRpc((callback) => this.client.authenticateStore({ account, password }, callback))
+      const auth = await this.call<{ storeId: number | string; status: number; name: string }>((client) => callRpc((callback) => client.authenticateStore({ account, password }, callback)))
       if (auth.status === StoreStatus.keyMap.DEFUNCT) {
         throw new BizError(authErrors.STORE_DISABLED)
       }
@@ -133,7 +148,7 @@ export class GrpcStoreServiceClient implements StoreService {
 
   public async updateStatus(id: number, status: StoreStatusCode): Promise<void> {
     try {
-      await callRpc((callback) => this.client.updateStoreStatus({ id, status }, callback))
+      await this.call((client) => callRpc((callback) => client.updateStoreStatus({ id, status }, callback)))
     } catch (error) {
       throw mapRpcError(error, 'store')
     }
@@ -149,15 +164,13 @@ export class GrpcStoreServiceClient implements StoreService {
 
   private async updatePassword(id: number, input: ResetPasswordRequest): Promise<void> {
     try {
-      await callRpc((callback) => this.client.changeStorePassword({
+      await this.call((client) => callRpc((callback) => client.changeStorePassword({
         id, oldPassword: input.oldPassword, newPassword: input.newPassword,
-      }, callback))
+      }, callback)))
     } catch (error) {
       throw mapRpcError(error, 'password')
     }
   }
 
-  public close(): void {
-    this.client.close()
-  }
+  public close(): void {}
 }
