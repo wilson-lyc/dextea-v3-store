@@ -155,7 +155,7 @@ function buildConfig(env: Env): AppConfig {
       serverList: splitServerList(env.NACOS_SERVER_ADDR),
       namespace: env.NACOS_NAMESPACE.trim() || 'public',
       group: env.NACOS_GROUP.trim() || 'DEFAULT_GROUP',
-      clusters: env.NACOS_CLUSTERS.trim(),
+      clusters: env.NACOS_CLUSTER.trim(),
       username: env.NACOS_USERNAME.trim() || undefined,
       password: env.NACOS_PASSWORD.trim() || undefined,
     },

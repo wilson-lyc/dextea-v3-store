@@ -22,7 +22,7 @@ const nacosEnvSchema = z.object({
   NACOS_SERVER_ADDR: z.string().default(''),
   NACOS_NAMESPACE: z.string().default('public'),
   NACOS_GROUP: z.string().default('DEFAULT_GROUP'),
-  NACOS_CLUSTERS: z.string().default(''),
+  NACOS_CLUSTER: z.string().default(''),
   NACOS_USERNAME: z.string().default(''),
   NACOS_PASSWORD: z.string().default(''),
 })

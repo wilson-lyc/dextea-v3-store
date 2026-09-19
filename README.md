@@ -117,10 +117,10 @@ cp apps/api/.env.example apps/api/.env
 | `ORDER_SERVICE_NAME` | 否 | `order-service` | 订单微服务在 Nacos 中注册的服务名 |
 | `ORDER_SERVICE_SCHEME` | 否 | `http` | 实例元数据未声明 `scheme` 时使用的 `http` / `https` |
 | `NACOS_ENABLED` | 否 | `false` | 是否启用 Nacos 服务发现（仅服务发现，不使用配置中心） |
-| `NACOS_SERVER_ADDR` | 条件必填 | — | Nacos 地址，`host:port`，多个用逗号分隔；`NACOS_ENABLED=true` 时必填 |
+| `NACOS_SERVER_ADDR` | 条件必填 | — | Nacos 地址，`host:port`；`NACOS_ENABLED=true` 时必填 |
 | `NACOS_NAMESPACE` | 否 | `public` | Nacos 命名空间 ID |
 | `NACOS_GROUP` | 否 | `DEFAULT_GROUP` | Nacos 分组名 |
-| `NACOS_CLUSTERS` | 否 | — | 限定集群，留空表示不限 |
+| `NACOS_CLUSTER` | 否 | — | 限定集群，留空表示不限 |
 | `NACOS_USERNAME` `NACOS_PASSWORD` | 否 | — | Nacos 开启了鉴权时填写 |
 | `ORDER_MAKING_MQ_*` | 否 | — | 制单 MQ，默认关闭 |
 
