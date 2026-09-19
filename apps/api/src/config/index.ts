@@ -31,6 +31,8 @@ export interface StoreServiceConfig {
   serviceName: string
   scheme: 'http' | 'https'
   address: string
+  adminToken: string
+  credentialToken: string
 }
 
 export interface MqConfig {
@@ -69,7 +71,7 @@ export interface AppConfig {
   }
   orderService: OrderServiceConfig
   storeService: StoreServiceConfig
-  productService: { serviceName: string; address: string }
+  productService: { serviceName: string; address: string; adminToken: string; businessToken: string }
   nacos: NacosConfig
   mq: {
     orderMaking: MqConfig
@@ -139,8 +141,15 @@ function buildConfig(env: Env): AppConfig {
       serviceName: env.STORE_SERVICE_NAME.trim(),
       scheme: env.STORE_SERVICE_SCHEME,
       address: env.STORE_SERVICE_ADDR.trim(),
+      adminToken: env.STORE_ADMIN_SERVICE_TOKEN.trim(),
+      credentialToken: env.STORE_CREDENTIAL_SERVICE_TOKEN.trim(),
     },
-    productService: { serviceName: env.PRODUCT_SERVICE_NAME.trim(), address: env.PRODUCT_SERVICE_ADDR.trim() },
+    productService: {
+      serviceName: env.PRODUCT_SERVICE_NAME.trim(),
+      address: env.PRODUCT_SERVICE_ADDR.trim(),
+      adminToken: env.PRODUCT_ADMIN_SERVICE_TOKEN.trim(),
+      businessToken: env.PRODUCT_BUSINESS_SERVICE_TOKEN.trim(),
+    },
     nacos: {
       enabled: env.NACOS_ENABLED,
       serverList: splitServerList(env.NACOS_SERVER_ADDR),

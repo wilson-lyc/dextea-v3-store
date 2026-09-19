@@ -33,9 +33,9 @@ function protoPath(): string {
 function createClient(): RpcClient {
   const definition = protoLoader.loadSync(protoPath(), { keepCase: false, longs: String, defaults: true, oneofs: true })
   const packages = loadPackageDefinition(definition) as unknown as {
-    dextea: { order: { v1: { OrderService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => RpcClient } } }
+    dextea: { order: { v1: { OrderAdminService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => RpcClient } } }
   }
-  return new packages.dextea.order.v1.OrderService(getConfig().orderService.rpcAddress, credentials.createInsecure())
+  return new packages.dextea.order.v1.OrderAdminService(getConfig().orderService.rpcAddress, credentials.createInsecure())
 }
 
 export class GrpcOrderGateway implements OrderGateway {

@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { credentials, type Client, status as grpcStatus } from '@grpc/grpc-js'
+import { credentials, Metadata, type Client, status as grpcStatus } from '@grpc/grpc-js'
 import * as protoLoader from '@grpc/proto-loader'
 import { loadPackageDefinition } from '@grpc/grpc-js'
 import { getConfig } from '@/config/index.js'
@@ -30,16 +30,19 @@ type RpcStore = {
   updatedAt: string
 }
 
-type StoreRpcClient = Client & {
-  getStore: (request: { id: number }, callback: RpcCallback<{ store?: RpcStore } | RpcStore>) => void
-  getStoreByAccount: (request: { account: string }, callback: RpcCallback<RpcStore>) => void
+type StoreAdminRpcClient = Client & {
+  getStore: (request: { id: number }, metadata: Metadata, callback: RpcCallback<{ store?: RpcStore } | RpcStore>) => void
+  getStoreByAccount: (request: { account: string }, metadata: Metadata, callback: RpcCallback<RpcStore>) => void
+  updateStoreStatus: (request: { id: number; status: number }, metadata: Metadata, callback: RpcCallback<RpcStore>) => void
+}
+
+type StoreCredentialRpcClient = Client & {
   authenticateStore: (
-    request: { account: string; password: string },
+    request: { account: string; password: string }, metadata: Metadata,
     callback: RpcCallback<{ storeId: number | string; status: number; name: string }>
   ) => void
-  updateStoreStatus: (request: { id: number; status: number }, callback: RpcCallback<RpcStore>) => void
   changeStorePassword: (
-    request: { id: number; oldPassword: string; newPassword: string },
+    request: { id: number; oldPassword: string; newPassword: string }, metadata: Metadata,
     callback: RpcCallback<{ changed: boolean }>
   ) => void
 }
@@ -51,7 +54,7 @@ function protoPath(): string {
     path.resolve(process.cwd(), '../../../dextea-proto/proto/store/v1/store.proto')
 }
 
-function createClient(address: string): StoreRpcClient {
+function createClient<T extends Client>(serviceName: 'StoreAdminService' | 'StoreCredentialService', address: string): T {
   const packageDefinition = protoLoader.loadSync(protoPath(), {
     keepCase: false,
     longs: String,
@@ -60,9 +63,11 @@ function createClient(address: string): StoreRpcClient {
     oneofs: true,
   })
   const packages = loadPackageDefinition(packageDefinition) as unknown as {
-    dextea: { store: { v1: { StoreService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => StoreRpcClient } } }
+    dextea: { store: { v1: Record<string, new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => Client> } }
   }
-  return new packages.dextea.store.v1.StoreService(address, credentials.createInsecure())
+  const Service = packages.dextea.store.v1[serviceName]
+  if (!Service) throw new Error(`门店服务定义不存在: ${serviceName}`)
+  return new Service(address, credentials.createInsecure()) as T
 }
 
 async function resolveAddress(): Promise<string> {
@@ -76,9 +81,11 @@ async function resolveAddress(): Promise<string> {
   return config.storeService.address
 }
 
-function callRpc<T>(call: (callback: RpcCallback<T>) => void): Promise<T> {
+function callRpc<T>(token: string, call: (metadata: Metadata, callback: RpcCallback<T>) => void): Promise<T> {
+  const metadata = new Metadata()
+  if (token) metadata.set('x-service-token', token)
   return new Promise((resolve, reject) => {
-    call((error, response) => (error ? reject(error) : resolve(response)))
+    call(metadata, (error, response) => (error ? reject(error) : resolve(response)))
   })
 }
 
@@ -109,14 +116,19 @@ function toModel(store: RpcStore): Store {
 }
 
 export class GrpcStoreServiceClient implements StoreService {
-  private async call<T>(fn: (client: StoreRpcClient) => Promise<T>): Promise<T> {
-    const client = createClient(await resolveAddress())
+  private async callAdmin<T>(fn: (client: StoreAdminRpcClient) => Promise<T>): Promise<T> {
+    const client = createClient<StoreAdminRpcClient>('StoreAdminService', await resolveAddress())
+    try { return await fn(client) } finally { client.close() }
+  }
+
+  private async callCredential<T>(fn: (client: StoreCredentialRpcClient) => Promise<T>): Promise<T> {
+    const client = createClient<StoreCredentialRpcClient>('StoreCredentialService', await resolveAddress())
     try { return await fn(client) } finally { client.close() }
   }
 
   public async getById(id: number): Promise<Store> {
     try {
-      const response = await this.call<{ store?: RpcStore } | RpcStore>((client) => callRpc((callback) => client.getStore({ id }, callback)))
+      const response = await this.callAdmin<{ store?: RpcStore } | RpcStore>((client) => callRpc(getConfig().storeService.adminToken, (metadata, callback) => client.getStore({ id }, metadata, callback)))
       const store = ('store' in response ? response.store : response) as RpcStore | undefined
       if (!store) throw new BizError(storeErrors.STORE_NOT_FOUND)
       return toModel(store)
@@ -127,7 +139,7 @@ export class GrpcStoreServiceClient implements StoreService {
 
   public async getByAccount(account: string): Promise<Store> {
     try {
-      return toModel(await this.call<RpcStore>((client) => callRpc((callback) => client.getStoreByAccount({ account }, callback))))
+      return toModel(await this.callAdmin<RpcStore>((client) => callRpc(getConfig().storeService.adminToken, (metadata, callback) => client.getStoreByAccount({ account }, metadata, callback))))
     } catch (error) {
       throw mapRpcError(error, 'store')
     }
@@ -135,7 +147,7 @@ export class GrpcStoreServiceClient implements StoreService {
 
   public async authenticate(account: string, password: string): Promise<Store> {
     try {
-      const auth = await this.call<{ storeId: number | string; status: number; name: string }>((client) => callRpc((callback) => client.authenticateStore({ account, password }, callback)))
+      const auth = await this.callCredential<{ storeId: number | string; status: number; name: string }>((client) => callRpc(getConfig().storeService.credentialToken, (metadata, callback) => client.authenticateStore({ account, password }, metadata, callback)))
       if (auth.status === StoreStatus.keyMap.DEFUNCT) {
         throw new BizError(authErrors.STORE_DISABLED)
       }
@@ -148,7 +160,7 @@ export class GrpcStoreServiceClient implements StoreService {
 
   public async updateStatus(id: number, status: StoreStatusCode): Promise<void> {
     try {
-      await this.call((client) => callRpc((callback) => client.updateStoreStatus({ id, status }, callback)))
+      await this.callAdmin((client) => callRpc(getConfig().storeService.adminToken, (metadata, callback) => client.updateStoreStatus({ id, status }, metadata, callback)))
     } catch (error) {
       throw mapRpcError(error, 'store')
     }
@@ -164,9 +176,9 @@ export class GrpcStoreServiceClient implements StoreService {
 
   private async updatePassword(id: number, input: ResetPasswordRequest): Promise<void> {
     try {
-      await this.call((client) => callRpc((callback) => client.changeStorePassword({
+      await this.callCredential((client) => callRpc(getConfig().storeService.credentialToken, (metadata, callback) => client.changeStorePassword({
         id, oldPassword: input.oldPassword, newPassword: input.newPassword,
-      }, callback)))
+      }, metadata, callback)))
     } catch (error) {
       throw mapRpcError(error, 'password')
     }

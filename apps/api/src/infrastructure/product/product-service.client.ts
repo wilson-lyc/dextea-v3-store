@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { credentials, loadPackageDefinition, type Client, status as grpcStatus } from '@grpc/grpc-js'
+import { credentials, loadPackageDefinition, Metadata, type Client, status as grpcStatus } from '@grpc/grpc-js'
 import * as protoLoader from '@grpc/proto-loader'
 import {
   CustomizationItemStatus,
@@ -30,18 +30,28 @@ type RpcItem = { id: number | string; productId: number | string; name: string; 
 type RpcOption = { id: number | string; itemId: number | string; name: string; price: number; sort: number; status: number; createdAt: string; updatedAt: string }
 type StatusView = { productId?: number | string; optionId?: number | string; storeStatus: number }
 
-type ProductRpcClient = Client & {
-  listProducts(request: object, cb: Callback<{ products: RpcProduct[]; total: number | string }>): void
-  getProductStoreStatuses(request: object, cb: Callback<{ products: StatusView[] }>): void
-  batchSetProductStoreStatus(request: object, cb: Callback<{ updatedCount: number }>): void
-  listCustomizationItems(request: object, cb: Callback<{ items: RpcItem[]; total: number | string }>): void
-  listCustomizationOptions(request: object, cb: Callback<{ options: RpcOption[]; total: number | string }>): void
-  getCustomizationOptionStoreStatuses(request: object, cb: Callback<{ options: StatusView[] }>): void
-  batchSetCustomizationOptionStoreStatus(request: object, cb: Callback<{ updatedCount: number }>): void
+type ProductAdminRpcClient = Client & {
+  listProducts(request: object, metadata: Metadata, cb: Callback<{ products: RpcProduct[]; total: number | string }>): void
+  batchSetProductStoreStatus(request: object, metadata: Metadata, cb: Callback<{ updatedCount: number }>): void
+  listCustomizationItems(request: object, metadata: Metadata, cb: Callback<{ items: RpcItem[]; total: number | string }>): void
+  listCustomizationOptions(request: object, metadata: Metadata, cb: Callback<{ options: RpcOption[]; total: number | string }>): void
+  batchSetCustomizationOptionStoreStatus(request: object, metadata: Metadata, cb: Callback<{ updatedCount: number }>): void
 }
 
-function rpc<T>(call: (cb: Callback<T>) => void): Promise<T> {
-  return new Promise((resolve, reject) => call((error, value) => (error ? reject(error) : resolve(value))))
+type ProductBusinessRpcClient = Client & {
+  getProductStoreStatuses(request: object, metadata: Metadata, cb: Callback<{ products: StatusView[] }>): void
+  getCustomizationOptionStoreStatuses(request: object, metadata: Metadata, cb: Callback<{ options: StatusView[] }>): void
+}
+
+type ProductRpcClients = {
+  admin: ProductAdminRpcClient
+  business: ProductBusinessRpcClient
+}
+
+function rpc<T>(token: string, call: (cb: Callback<T>, metadata: Metadata) => void): Promise<T> {
+  const metadata = new Metadata()
+  if (token) metadata.set('x-service-token', token)
+  return new Promise((resolve, reject) => call((error, value) => (error ? reject(error) : resolve(value)), metadata))
 }
 
 function protoPath(): string {
@@ -49,12 +59,18 @@ function protoPath(): string {
     path.resolve(process.cwd(), '../../../dextea-proto/proto/product/v1/product.proto')
 }
 
-function createClient(address: string): ProductRpcClient {
+function createClient(address: string): ProductRpcClients {
   const definition = protoLoader.loadSync(protoPath(), { keepCase: false, longs: String, defaults: true, oneofs: true })
   const packages = loadPackageDefinition(definition) as unknown as {
-    dextea: { product: { v1: { ProductService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => ProductRpcClient } } }
+    dextea: { product: { v1: {
+      ProductAdminService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => ProductAdminRpcClient
+      ProductBusinessService: new (address: string, creds: ReturnType<typeof credentials.createInsecure>) => ProductBusinessRpcClient
+    } } }
   }
-  return new packages.dextea.product.v1.ProductService(address, credentials.createInsecure())
+  return {
+    admin: new packages.dextea.product.v1.ProductAdminService(address, credentials.createInsecure()),
+    business: new packages.dextea.product.v1.ProductBusinessService(address, credentials.createInsecure()),
+  }
 }
 
 async function resolveAddress(): Promise<string> {
@@ -94,12 +110,15 @@ function optionModel(row: RpcOption): CustomizationOption {
 }
 
 export class GrpcProductRepository implements ProductRepository {
-  public constructor(private readonly clientFactory: () => Promise<ProductRpcClient>) {}
-  private async call<T>(fn: (client: ProductRpcClient) => Promise<T>): Promise<T> { const client = await this.clientFactory(); try { return await fn(client) } finally { client.close() } }
+  public constructor(private readonly clientFactory: () => Promise<ProductRpcClients>) {}
+  private async call<T>(fn: (clients: ProductRpcClients) => Promise<T>): Promise<T> {
+    const clients = await this.clientFactory()
+    try { return await fn(clients) } finally { clients.admin.close(); clients.business.close() }
+  }
 
   public async findGloballyActive(): Promise<Product[]> {
     try {
-      const response = await this.call<{ products: RpcProduct[]; total: number | string }>((client) => rpc((cb) => client.listProducts({ page: 1, pageSize: 100, status: ProductGlobalStatus.keyMap.ACTIVE, name: '' }, cb)))
+      const response = await this.call<{ products: RpcProduct[]; total: number | string }>((clients) => rpc(getConfig().productService.adminToken, (cb, metadata) => clients.admin.listProducts({ page: 1, pageSize: 100, status: ProductGlobalStatus.keyMap.ACTIVE, name: '' }, metadata, cb)))
       return response.products.map(productModel)
     } catch (error) { throw mapError(error, 'product') }
   }
@@ -108,7 +127,7 @@ export class GrpcProductRepository implements ProductRepository {
     const result = new Map<number, ProductStoreStatusCode>(productIds.map((id) => [id, ProductStoreStatus.keyMap.DISABLED]))
     if (productIds.length === 0) return result
     try {
-      const response = await this.call<{ products: StatusView[] }>((client) => rpc((cb) => client.getProductStoreStatuses({ storeId, productIds }, cb)))
+      const response = await this.call<{ products: StatusView[] }>((clients) => rpc(getConfig().productService.businessToken, (cb, metadata) => clients.business.getProductStoreStatuses({ storeId, productIds }, metadata, cb)))
       for (const row of response.products) result.set(Number(row.productId), ProductStoreStatus.schema().parse(row.storeStatus) as ProductStoreStatusCode)
       return result
     } catch (error) { throw mapError(error, 'product') }
@@ -120,25 +139,28 @@ export class GrpcProductRepository implements ProductRepository {
 
   public async batchSetStoreStatus(storeId: number, productIds: readonly number[], status: ProductStoreStatusCode): Promise<void> {
     if (productIds.length === 0) return
-    try { await this.call((client) => rpc((cb) => client.batchSetProductStoreStatus({ storeId, productIds, status }, cb))) }
+    try { await this.call((clients) => rpc(getConfig().productService.adminToken, (cb, metadata) => clients.admin.batchSetProductStoreStatus({ storeId, productIds, status }, metadata, cb))) }
     catch (error) { throw mapError(error, 'product') }
   }
 }
 
 export class GrpcCustomizationRepository implements CustomizationRepository {
-  public constructor(private readonly clientFactory: () => Promise<ProductRpcClient>) {}
-  private async call<T>(fn: (client: ProductRpcClient) => Promise<T>): Promise<T> { const client = await this.clientFactory(); try { return await fn(client) } finally { client.close() } }
+  public constructor(private readonly clientFactory: () => Promise<ProductRpcClients>) {}
+  private async call<T>(fn: (clients: ProductRpcClients) => Promise<T>): Promise<T> {
+    const clients = await this.clientFactory()
+    try { return await fn(clients) } finally { clients.admin.close(); clients.business.close() }
+  }
 
   public async findActiveItemsByProductId(productId: number): Promise<CustomizationItem[]> {
     try {
-      const response = await this.call<{ items: RpcItem[]; total: number | string }>((client) => rpc((cb) => client.listCustomizationItems({ productId, page: 1, pageSize: 100, status: CustomizationItemStatus.keyMap.ACTIVE, name: '' }, cb)))
+      const response = await this.call<{ items: RpcItem[]; total: number | string }>((clients) => rpc(getConfig().productService.adminToken, (cb, metadata) => clients.admin.listCustomizationItems({ productId, page: 1, pageSize: 100, status: CustomizationItemStatus.keyMap.ACTIVE, name: '' }, metadata, cb)))
       return response.items.map(itemModel)
     } catch (error) { throw mapError(error, 'customization') }
   }
 
   public async findActiveOptionsByItemIds(itemIds: readonly number[]): Promise<CustomizationOption[]> {
     try {
-      const lists = await Promise.all(itemIds.map((itemId) => this.call<{ options: RpcOption[]; total: number | string }>((client) => rpc((cb) => client.listCustomizationOptions({ itemId, page: 1, pageSize: 100, status: CustomizationOptionGlobalStatus.keyMap.ACTIVE, name: '' }, cb)))))
+      const lists = await Promise.all(itemIds.map((itemId) => this.call<{ options: RpcOption[]; total: number | string }>((clients) => rpc(getConfig().productService.adminToken, (cb, metadata) => clients.admin.listCustomizationOptions({ itemId, page: 1, pageSize: 100, status: CustomizationOptionGlobalStatus.keyMap.ACTIVE, name: '' }, metadata, cb)))))
       return lists.flatMap((response) => response.options.map(optionModel))
     } catch (error) { throw mapError(error, 'customization') }
   }
@@ -147,14 +169,14 @@ export class GrpcCustomizationRepository implements CustomizationRepository {
     const result = new Map<number, CustomizationOptionStoreStatusCode>(optionIds.map((id) => [id, CustomizationOptionStoreStatus.keyMap.DISABLED]))
     if (optionIds.length === 0) return result
     try {
-      const response = await this.call<{ options: StatusView[] }>((client) => rpc((cb) => client.getCustomizationOptionStoreStatuses({ storeId, optionIds }, cb)))
+      const response = await this.call<{ options: StatusView[] }>((clients) => rpc(getConfig().productService.businessToken, (cb, metadata) => clients.business.getCustomizationOptionStoreStatuses({ storeId, optionIds }, metadata, cb)))
       for (const row of response.options) result.set(Number(row.optionId), CustomizationOptionStoreStatus.schema().parse(row.storeStatus) as CustomizationOptionStoreStatusCode)
       return result
     } catch (error) { throw mapError(error, 'customization') }
   }
 
   public async upsertOptionStoreStatus(optionId: number, storeId: number, status: CustomizationOptionStoreStatusCode): Promise<void> {
-      try { await this.call((client) => rpc((cb) => client.batchSetCustomizationOptionStoreStatus({ storeId, optionIds: [optionId], status }, cb))) }
+      try { await this.call((clients) => rpc(getConfig().productService.adminToken, (cb, metadata) => clients.admin.batchSetCustomizationOptionStoreStatus({ storeId, optionIds: [optionId], status }, metadata, cb))) }
     catch (error) { throw mapError(error, 'customization') }
   }
 }
