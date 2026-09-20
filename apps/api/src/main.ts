@@ -1,6 +1,5 @@
 import { getConfig } from '@/config/index.js'
 import { getLogger } from '@/shared/logger.js'
-import { closeDatabase } from '@/infrastructure/database/pool.js'
 import {
   startOrderMakingMq,
   stopOrderMakingMq,
@@ -57,7 +56,6 @@ async function bootstrap(): Promise<void> {
     await stopOrderMakingMq().catch(() => undefined)
     await app.close().catch(() => undefined)
     await closeNacosNamingClient()
-    await closeDatabase().catch(() => undefined)
 
     process.exit(0)
   }

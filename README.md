@@ -6,8 +6,8 @@
 
 店铺端为各门店提供日常运营能力：
 
-- **门店登录**：JWT 认证登录（argon2 密码哈希）
-- **门店信息**：查询当前门店信息、更新营业状态、重置密码
+- **门店登录**：调用 `dextea-store-service` 校验门店密码，由本服务签发 JWT
+- **门店信息**：通过 `StoreAdminService` 查询当前门店信息、更新营业状态；通过 `StoreCredentialService` 修改密码
 - **商品与客制化**：查询在售商品、切换/批量设置商品门店可售状态、维护客制化选项门店状态
 - **订单制作**：订单看板与订单详情（转发至订单微服务）
 
@@ -35,7 +35,7 @@ dextea-store/
 │   │   │   ├── config/               # 配置加载与 zod 校验（惰性、可注入）
 │   │   │   ├── modules/              # 业务领域（每个领域自成一格）
 │   │   │   │   ├── auth/             # 登录与令牌签发/校验
-│   │   │   │   ├── store/            # 门店档案与状态、密码
+│   │   │   │   ├── store/            # 门店档案与状态（通过 Store Service RPC）
 │   │   │   │   ├── product/          # 商品与门店可售状态
 │   │   │   │   ├── customization/    # 客制化项与选项的门店状态
 │   │   │   │   └── order/            # 订单微服务网关（外部服务代理）
@@ -74,7 +74,7 @@ interfaces/http  ──▶  modules/<领域>  ──▶  domain model
 ```
 
 - `modules/<领域>` 内聚该领域的 controller / service / repository / model / presenter / error；
-- 仓储以接口（port）+ Drizzle 实现（adapter）形式提供，便于单测替换；
+- 仓储以接口（port）+ 基础设施 adapter 形式提供，便于单测替换；门店领域不在本服务直接读写数据库表；
 - 领域层不依赖 Fastify 与 HTTP 状态码（由 `interfaces/http` 映射），ESLint 对此做了约束；
 - `infrastructure/database/schema/external-tables.ts` 是与 `dextea-admin` 共享库的表目录，本服务不读写这些表。
 
@@ -286,5 +286,5 @@ server {
 
 - 构建顺序：`packages/constraints` 需先于 `apps/api`、`apps/web` 构建。
 - 前端为 SPA，nginx 需配置 `try_files ... /index.html` 回退。
-- 与 `dextea-admin` 共享同一套 MySQL 数据（门店、商品、订单等表）。
+- 底层环境可能与 `dextea-admin` 共享 MySQL，但本服务不直接读写门店领域表，门店资料和凭证统一通过 `dextea-store-service` RPC 访问。
 - **数据库迁移**：`apps/api/drizzle/` 已纳入版本控制。当前仓库尚无迁移文件——共享库的表结构由 `dextea-admin` 维护，切勿在本服务执行 `db:generate` 生成初始化迁移，否则会产出覆盖全库的建表语句。本服务仅维护自身所需的表结构定义。

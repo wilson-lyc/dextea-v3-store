@@ -6,7 +6,6 @@ import {
 } from 'fastify-type-provider-zod'
 import { getConfig } from '@/config/index.js'
 import { buildLoggerOptions } from '@/shared/logger.js'
-import { getDatabase } from '@/infrastructure/database/pool.js'
 import { HttpOrderGateway } from '@/infrastructure/external/order-service.client.js'
 import { GrpcOrderGateway } from '@/infrastructure/external/order-service-rpc.client.js'
 import { registerPlugins } from '@/interfaces/http/plugins.js'
@@ -15,14 +14,10 @@ import { registerAuthGuard } from '@/interfaces/http/auth-guard.js'
 import './interfaces/http/type-augmentation.js'
 import { JwtTokenService, type TokenService } from '@/modules/auth/token.service.js'
 import { StoreCredentialsAuthService } from '@/modules/auth/auth.service.js'
-import {
-  LocalStoreCredentialsService,
-  type StoreCredentialsService,
-} from '@/modules/auth/store-credentials.service.js'
+import type { StoreCredentialsService } from '@/modules/auth/store-credentials.service.js'
 import { createAuthRoutes } from '@/modules/auth/auth.module.js'
 import type { StoreService } from '@/modules/store/store.service.js'
-import { DrizzleStoreRepository, type StoreRepository } from '@/modules/store/store.repository.js'
-import { GrpcStoreServiceClient } from '@/infrastructure/store/store-service.client.js'
+import { GrpcStoreCredentialsService, GrpcStoreServiceClient } from '@/infrastructure/store/store-service.client.js'
 import { toStoreView } from '@/modules/store/store.presenter.js'
 import { createStoreRoutes } from '@/modules/store/store.module.js'
 import type { ProductRepository } from '@/modules/product/product.repository.js'
@@ -42,7 +37,6 @@ import { createProductRpcRepositories } from '@/infrastructure/product/product-s
 
 export interface AppDependencies {
   storeService?: StoreService
-  storeRepository?: StoreRepository
   credentialsService?: StoreCredentialsService
   productRepository?: ProductRepository
   customizationRepository?: CustomizationRepository
@@ -86,10 +80,8 @@ export async function buildApp(
   app.get('/health', async () => ({ status: 'ok' }))
 
   const storeService = dependencies.storeService ?? new GrpcStoreServiceClient()
-  const storeRepository =
-    dependencies.storeRepository ?? new DrizzleStoreRepository(getDatabase())
   const credentialsService =
-    dependencies.credentialsService ?? new LocalStoreCredentialsService(storeRepository)
+    dependencies.credentialsService ?? new GrpcStoreCredentialsService(storeService)
   const productRpc =
     !dependencies.productRepository || !dependencies.customizationRepository
       ? createProductRpcRepositories()

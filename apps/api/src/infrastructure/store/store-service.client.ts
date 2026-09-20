@@ -7,7 +7,8 @@ import { BizError } from '@/shared/errors.js'
 import { authErrors } from '@/modules/auth/auth.error.js'
 import { storeErrors } from '@/modules/store/store.error.js'
 import { Store } from '@/modules/store/store.model.js'
-import { StoreStatus, type ResetPasswordRequest, type StoreStatusCode } from '@dextea/constraints'
+import { StoreStatus, type LoginRequest, type ResetPasswordRequest, type StoreStatusCode } from '@dextea/constraints'
+import type { StoreCredentialsService } from '@/modules/auth/store-credentials.service.js'
 import type { StoreService } from '@/modules/store/store.service.js'
 import { getNacosNamingClient, isNacosDiscoveryEnabled } from '@/infrastructure/nacos/naming-client.js'
 import { NacosServiceDiscovery } from '@/infrastructure/nacos/service-discovery.js'
@@ -89,12 +90,20 @@ function callRpc<T>(token: string, call: (metadata: Metadata, callback: RpcCallb
   })
 }
 
+async function callCredentialRpc<T>(fn: (client: StoreCredentialRpcClient) => Promise<T>): Promise<T> {
+  const client = createClient<StoreCredentialRpcClient>('StoreCredentialService', await resolveAddress())
+  try { return await fn(client) } finally { client.close() }
+}
+
 function mapRpcError(error: unknown, operation: 'auth' | 'password' | 'store'): Error {
   const code = typeof error === 'object' && error !== null && 'code' in error
     ? (error as { code?: unknown }).code
     : undefined
 
-  if (code === grpcStatus.NOT_FOUND) return new BizError(storeErrors.STORE_NOT_FOUND)
+  if (code === grpcStatus.NOT_FOUND) {
+    if (operation === 'auth') return new BizError(authErrors.INVALID_CREDENTIALS)
+    return new BizError(storeErrors.STORE_NOT_FOUND)
+  }
   if (operation === 'auth' && code === grpcStatus.UNAUTHENTICATED) {
     return new BizError(authErrors.INVALID_CREDENTIALS)
   }
@@ -121,11 +130,6 @@ export class GrpcStoreServiceClient implements StoreService {
     try { return await fn(client) } finally { client.close() }
   }
 
-  private async callCredential<T>(fn: (client: StoreCredentialRpcClient) => Promise<T>): Promise<T> {
-    const client = createClient<StoreCredentialRpcClient>('StoreCredentialService', await resolveAddress())
-    try { return await fn(client) } finally { client.close() }
-  }
-
   public async getById(id: number): Promise<Store> {
     try {
       const response = await this.callAdmin<{ store?: RpcStore } | RpcStore>((client) => callRpc(getConfig().storeService.adminToken, (metadata, callback) => client.getStore({ id }, metadata, callback)))
@@ -145,19 +149,6 @@ export class GrpcStoreServiceClient implements StoreService {
     }
   }
 
-  public async authenticate(account: string, password: string): Promise<Store> {
-    try {
-      const auth = await this.callCredential<{ storeId: number | string; status: number; name: string }>((client) => callRpc(getConfig().storeService.credentialToken, (metadata, callback) => client.authenticateStore({ account, password }, metadata, callback)))
-      if (auth.status === StoreStatus.keyMap.DEFUNCT) {
-        throw new BizError(authErrors.STORE_DISABLED)
-      }
-      return this.getById(Number(auth.storeId))
-    } catch (error) {
-      if (BizError.isBizError(error)) throw error
-      throw mapRpcError(error, 'auth')
-    }
-  }
-
   public async updateStatus(id: number, status: StoreStatusCode): Promise<void> {
     try {
       await this.callAdmin((client) => callRpc(getConfig().storeService.adminToken, (metadata, callback) => client.updateStoreStatus({ id, status }, metadata, callback)))
@@ -166,23 +157,37 @@ export class GrpcStoreServiceClient implements StoreService {
     }
   }
 
-  public async changePassword(id: number, input: ResetPasswordRequest): Promise<void> {
-    await this.updatePassword(id, input)
-  }
+  public close(): void {}
+}
 
-  public async resetPassword(id: number, input: ResetPasswordRequest): Promise<void> {
-    await this.updatePassword(id, input)
-  }
+export class GrpcStoreCredentialsService implements StoreCredentialsService {
+  public constructor(private readonly storeService: StoreService) {}
 
-  private async updatePassword(id: number, input: ResetPasswordRequest): Promise<void> {
+  public async authenticate(input: LoginRequest): Promise<Store> {
     try {
-      await this.callCredential((client) => callRpc(getConfig().storeService.credentialToken, (metadata, callback) => client.changeStorePassword({
-        id, oldPassword: input.oldPassword, newPassword: input.newPassword,
+      const auth = await callCredentialRpc<{ storeId: number | string; status: number; name: string }>((client) => callRpc(getConfig().storeService.credentialToken, (metadata, callback) => client.authenticateStore({
+        account: input.account,
+        password: input.password,
+      }, metadata, callback)))
+      if (auth.status === StoreStatus.keyMap.DEFUNCT) {
+        throw new BizError(authErrors.STORE_DISABLED)
+      }
+      return this.storeService.getById(Number(auth.storeId))
+    } catch (error) {
+      if (BizError.isBizError(error)) throw error
+      throw mapRpcError(error, 'auth')
+    }
+  }
+
+  public async changePassword(id: number, input: ResetPasswordRequest): Promise<void> {
+    try {
+      await callCredentialRpc((client) => callRpc(getConfig().storeService.credentialToken, (metadata, callback) => client.changeStorePassword({
+        id,
+        oldPassword: input.oldPassword,
+        newPassword: input.newPassword,
       }, metadata, callback)))
     } catch (error) {
       throw mapRpcError(error, 'password')
     }
   }
-
-  public close(): void {}
 }
